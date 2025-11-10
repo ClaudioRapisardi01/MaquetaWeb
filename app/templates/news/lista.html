@@ -1,34 +1,39 @@
 {% extends "base.html" %}
 {% from "_macros.html" import render_pagination %}
-{% block title %}Dischi{% endblock %}
+{% block title %}News{% endblock %}
 {% block content %}
 <div class="d-flex justify-between align-center mb-3">
-    <h1 style="font-size: 2rem; font-weight: 700;">Dischi</h1>
-    {% if current_user.is_editor() %}<a href="{{ url_for('dischi.nuovo') }}" class="btn btn-success"><i class="fas fa-plus"></i> Nuovo Disco</a>{% endif %}
+    <h1 style="font-size: 2rem; font-weight: 700;">News</h1>
+    {% if current_user.is_editor() %}<a href="{{ url_for('news.nuovo') }}" class="btn btn-primary"><i class="fas fa-plus"></i> Nuova News</a>{% endif %}
 </div>
 <div class="grid grid-3">
-    {% for disco in dischi.items %}
+    {% for articolo in news.items %}
     <div class="card" style="padding: 0; overflow: hidden;">
-        {% if disco.copertina %}
-        <img src="{{ url_for('static', filename='uploads/images/' + disco.copertina) }}" style="width: 100%; height: 200px; object-fit: cover;">
+        {% if articolo.immagine %}
+        <img src="{{ url_for('static', filename='uploads/images/' + articolo.immagine) }}" style="width: 100%; height: 200px; object-fit: cover;">
         {% else %}
-        <div style="width: 100%; height: 200px; background: linear-gradient(135deg, #10b981, #059669); display: flex; align-items: center; justify-content: center;"><i class="fas fa-compact-disc" style="font-size: 4rem; color: white;"></i></div>
+        <div style="width: 100%; height: 200px; background: linear-gradient(135deg, #dc2626, #991b1b); display: flex; align-items: center; justify-content: center;"><i class="fas fa-newspaper" style="font-size: 4rem; color: white;"></i></div>
         {% endif %}
         <div style="padding: 1.5rem;">
-            <h3 style="margin-bottom: 0.5rem;">{{ disco.titolo }}</h3>
-            <p style="color: #64748b; font-size: 0.875rem; margin-bottom: 1rem;">{{ disco.formato or 'Non specificato' }}</p>
+            <div class="d-flex justify-between align-center mb-2">
+                <span class="badge badge-{% if articolo.categoria == 'Comunicato' %}info{% elif articolo.categoria == 'Evento' %}warning{% else %}primary{% endif %}">{{ articolo.categoria }}</span>
+                <span class="badge badge-{% if articolo.pubblicato %}success{% else %}secondary{% endif %}">{{ 'Pubblicato' if articolo.pubblicato else 'Bozza' }}</span>
+            </div>
+            <h3 style="margin-bottom: 0.5rem;">{{ articolo.titolo }}</h3>
+            <p style="color: #64748b; font-size: 0.875rem; margin-bottom: 0.5rem;">{{ articolo.sommario[:100] + '...' if articolo.sommario and articolo.sommario|length > 100 else articolo.sommario or '' }}</p>
+            <p style="color: #94a3b8; font-size: 0.75rem; margin-bottom: 1rem;">{{ articolo.data_pubblicazione.strftime('%d/%m/%Y') }}</p>
             <div class="d-flex gap-1">
-                <a href="{{ url_for('dischi.dettaglio', id=disco.id) }}" class="btn btn-sm btn-success"><i class="fas fa-eye"></i></a>
-                {% if current_user.is_editor() or disco.creato_da == current_user.id %}
-                <a href="{{ url_for('dischi.modifica', id=disco.id) }}" class="btn btn-sm btn-warning"><i class="fas fa-edit"></i></a>
-                {% if current_user.is_editor() %}<a href="{{ url_for('dischi.elimina', id=disco.id) }}" class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></a>{% endif %}
+                <a href="{{ url_for('news.dettaglio', id=articolo.id) }}" class="btn btn-sm btn-primary"><i class="fas fa-eye"></i></a>
+                {% if current_user.is_editor() or articolo.autore_id == current_user.id %}
+                <a href="{{ url_for('news.modifica', id=articolo.id) }}" class="btn btn-sm btn-warning"><i class="fas fa-edit"></i></a>
+                {% if current_user.is_editor() %}<a href="{{ url_for('news.elimina', id=articolo.id) }}" class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></a>{% endif %}
                 {% endif %}
             </div>
         </div>
     </div>
     {% else %}
-    <div class="card" style="grid-column: 1/-1; text-align: center; padding: 3rem;"><p style="color: #64748b;">Nessun disco trovato</p></div>
+    <div class="card" style="grid-column: 1/-1; text-align: center; padding: 3rem;"><p style="color: #64748b;">Nessuna news trovata</p></div>
     {% endfor %}
 </div>
-{{ render_pagination(dischi, 'dischi.lista') }}
+{{ render_pagination(news, 'news.lista') }}
 {% endblock %}
