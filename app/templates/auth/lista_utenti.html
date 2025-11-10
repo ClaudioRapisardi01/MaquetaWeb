@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Utenti{% endblock %}
+{% block content %}
+<div class="d-flex justify-between align-center mb-3">
+    <h1 style="font-size: 2rem; font-weight: 700;">Gestione Utenti</h1>
+    <a href="{{ url_for('auth.registrazione') }}" class="btn btn-primary"><i class="fas fa-plus"></i> Nuovo Utente</a>
+</div>
+<div class="card">
+    <div class="table-responsive">
+        <table class="table">
+            <thead><tr><th>Username</th><th>Email</th><th>Ruolo</th><th>Stato</th><th>Azioni</th></tr></thead>
+            <tbody>
+                {% for user in utenti %}
+                <tr>
+                    <td><strong>{{ user.username }}</strong></td>
+                    <td>{{ user.email }}</td>
+                    <td><span class="badge badge-info">{{ user.ruolo }}</span></td>
+                    <td><span class="badge {% if user.attivo %}badge-success{% else %}badge-danger{% endif %}">{% if user.attivo %}Attivo{% else %}Disattivato{% endif %}</span></td>
+                    <td>
+                        <a href="{{ url_for('auth.toggle_attivo', id=user.id) }}" class="btn btn-sm btn-warning"><i class="fas fa-toggle-on"></i></a>
+                        {% if user.id != current_user.id %}
+                        <a href="{{ url_for('auth.elimina_utente', id=user.id) }}" class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
