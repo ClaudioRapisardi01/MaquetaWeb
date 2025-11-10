@@ -1,1 +1,16 @@
-{% extends 'base.html' %}{% from '_macros.html' import render_field %}{% block title %}Form{% endblock %}{% block content %}<h1>Form</h1><form method="POST">{{ form.hidden_tag() }}</form>{% endblock %}
+{% extends "base.html" %}
+{% from "_macros.html" import render_field %}
+{% block title %}{{ titolo }}{% endblock %}
+{% block content %}
+<h1 style="font-size: 2rem; font-weight: 700; margin-bottom: 1.5rem;">{{ titolo }}</h1>
+<div class="card">
+    <form method="POST" enctype="multipart/form-data">
+        {{ form.hidden_tag() }}
+        <p>Form in costruzione</p>
+        <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Salva</button>
+            <a href="{{ url_for('${module}.lista') }}" class="btn btn-secondary">Annulla</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
