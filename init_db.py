@@ -32,13 +32,13 @@ def init_database():
             db.session.add(admin)
             db.session.commit()
 
-            print("✓ Utente admin creato con successo!")
+            print("OK - Utente admin creato con successo!")
             print("\nCredenziali admin:")
             print("  Username: admin")
             print("  Password: admin123")
-            print("\n⚠ IMPORTANTE: Cambia la password dopo il primo accesso!")
+            print("\nIMPORTANTE: Cambia la password dopo il primo accesso!")
         else:
-            print("\n✓ Utente admin già esistente.")
+            print("\nOK - Utente admin gia' esistente.")
 
         # Crea alcuni dati di esempio
         create_sample_data = input("\nVuoi creare dati di esempio? (s/n): ").lower()
@@ -87,14 +87,14 @@ def init_database():
                     db.session.add(servizio)
 
             db.session.commit()
-            print("✓ Dati di esempio creati!")
+            print("OK - Dati di esempio creati!")
 
         print("\n" + "="*50)
         print("Database inizializzato con successo!")
         print("="*50)
         print("\nPuoi ora avviare l'applicazione con:")
         print("  python run.py")
-        print("\nL'app sarà disponibile su:")
+        print("\nL'app sara' disponibile su:")
         print("  http://localhost:6000")
         print("="*50)
 
@@ -102,7 +102,7 @@ if __name__ == '__main__':
     try:
         init_database()
     except Exception as e:
-        print(f"\n❌ Errore durante l'inizializzazione: {e}")
+        print(f"\nERRORE durante l'inizializzazione: {e}")
         print("\nAssicurati che:")
         print("1. MySQL sia in esecuzione")
         print("2. Il database 'discografica_db' sia stato creato")
