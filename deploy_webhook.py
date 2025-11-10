@@ -32,8 +32,16 @@ def restart_app():
 
 @app.route("/hook", methods=["POST"])
 def webhook():
-    data = request.json
-    if data.get("ref") == "refs/heads/master":  # Solo branch principale
+    # Accetta sia application/json che application/x-www-form-urlencoded
+    if request.is_json:
+        data = request.json
+    elif request.form.get('payload'):
+        import json
+        data = json.loads(request.form.get('payload'))
+    else:
+        return "Invalid payload", 400
+
+    if data and data.get("ref") == "refs/heads/master":  # Solo branch principale
         # Aggiorna codice
         subprocess.run(["git", "-C", APP_PATH, "pull"], shell=True)
         # Aggiorna dipendenze
