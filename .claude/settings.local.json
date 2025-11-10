@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(app/static/uploads/images/.gitkeep)",
+      "Bash(app/static/uploads/documents/.gitkeep)",
+      "Bash(for module in servizi staff documenti news eventi singoli)",
+      "Bash(do echo \"{% extends ''base.html'' %}{% block title %}Dettaglio{% endblock %}{% block content %}<h1>Dettaglio</h1><a href=\"\"{{ url_for(''$module.lista'') }}\"\" class=\"\"btn btn-secondary\"\">Indietro</a>{% endblock %}\")",
+      "Bash($module/dettaglio.html)",
+      "Bash(echo:*)",
+      "Bash($module/form.html)",
+      "Bash(done)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
