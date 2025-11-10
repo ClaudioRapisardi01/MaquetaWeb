@@ -33,7 +33,7 @@ def restart_app():
 @app.route("/hook", methods=["POST"])
 def webhook():
     data = request.json
-    if data.get("ref") == "refs/heads/main/master":  # Solo branch principale
+    if data.get("ref") == "refs/heads/master":  # Solo branch principale
         # Aggiorna codice
         subprocess.run(["git", "-C", APP_PATH, "pull"], shell=True)
         # Aggiorna dipendenze
