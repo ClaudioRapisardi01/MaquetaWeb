@@ -2,7 +2,7 @@ from flask_wtf import FlaskForm
 from flask_wtf.file import FileField, FileAllowed
 from wtforms import StringField, PasswordField, TextAreaField, SelectField, DateField, DateTimeField, BooleanField, DecimalField, IntegerField
 from wtforms.validators import DataRequired, Email, EqualTo, Length, Optional, URL, ValidationError
-from app.models import User, Artista
+from app.models import User, Artista, Ruolo
 
 # ==================== AUTH FORMS ====================
 
@@ -208,3 +208,10 @@ class NewsForm(FlaskForm):
     tipo = SelectField('Tipo', choices=[('interna', 'Interna'), ('esterna', 'Esterna')], default='interna')
     pubblicata = BooleanField('Pubblica subito')
     data_pubblicazione = DateTimeField('Data Pubblicazione', validators=[Optional()], format='%Y-%m-%dT%H:%M')
+
+
+# ==================== RUOLO FORMS ====================
+
+class RuoloForm(FlaskForm):
+    nome = StringField('Nome Ruolo', validators=[DataRequired(), Length(max=50)])
+    descrizione = StringField('Descrizione', validators=[Length(max=255)])

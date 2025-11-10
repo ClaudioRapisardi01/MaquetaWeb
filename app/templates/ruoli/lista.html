@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% from "_macros.html" import render_pagination %}
+{% block title %}Ruoli{% endblock %}
+{% block content %}
+<div class="d-flex justify-between align-center mb-3">
+    <h1 style="font-size: 2rem; font-weight: 700;">Ruoli</h1>
+    <a href="{{ url_for('ruoli.nuovo') }}" class="btn btn-primary"><i class="fas fa-plus"></i> Nuovo Ruolo</a>
+</div>
+<div class="card">
+    <div class="table-responsive">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Nome</th>
+                    <th>Descrizione</th>
+                    <th>Tipo</th>
+                    <th>Permessi</th>
+                    <th>Utenti</th>
+                    <th>Azioni</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for ruolo in ruoli.items %}
+                <tr>
+                    <td><strong>{{ ruolo.nome }}</strong></td>
+                    <td>{{ ruolo.descrizione or '-' }}</td>
+                    <td>
+                        {% if ruolo.is_system %}
+                        <span class="badge badge-info">Sistema</span>
+                        {% else %}
+                        <span class="badge badge-primary">Personalizzato</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ ruolo.permessi|length }} permessi</td>
+                    <td>{{ ruolo.utenti|length }} utenti</td>
+                    <td>
+                        <a href="{{ url_for('ruoli.dettaglio', id=ruolo.id) }}" class="btn btn-sm btn-primary"><i class="fas fa-eye"></i></a>
+                        {% if not ruolo.is_system %}
+                        <a href="{{ url_for('ruoli.modifica', id=ruolo.id) }}" class="btn btn-sm btn-warning"><i class="fas fa-edit"></i></a>
+                        <a href="{{ url_for('ruoli.elimina', id=ruolo.id) }}" class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="6" style="text-align: center; padding: 2rem; color: #64748b;">Nessun ruolo trovato</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{{ render_pagination(ruoli, 'ruoli.lista') }}
+{% endblock %}

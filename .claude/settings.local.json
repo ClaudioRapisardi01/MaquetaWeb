@@ -15,7 +15,8 @@
       "Bash(python create_database.py:*)",
       "Bash(python run.py:*)",
       "Bash(python init_permissions.py:*)",
-      "Bash(python migrate_users_table.py:*)"
+      "Bash(python migrate_users_table.py:*)",
+      "Bash(python -c:*)"
     ],
     "deny": [],
     "ask": []

@@ -37,6 +37,7 @@ def create_app():
     from app.blueprints.staff import staff_bp
     from app.blueprints.documenti import documenti_bp
     from app.blueprints.news import news_bp
+    from app.ruoli import ruoli
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(main_bp)
@@ -48,5 +49,6 @@ def create_app():
     app.register_blueprint(staff_bp, url_prefix='/staff')
     app.register_blueprint(documenti_bp, url_prefix='/documenti')
     app.register_blueprint(news_bp, url_prefix='/news')
+    app.register_blueprint(ruoli)
 
     return app

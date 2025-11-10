@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block title %}{{ ruolo.nome }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-between align-center mb-3">
+    <h1 style="font-size: 2rem; font-weight: 700;">{{ ruolo.nome }}</h1>
+    <div class="d-flex gap-1">
+        {% if not ruolo.is_system %}
+        <a href="{{ url_for('ruoli.modifica', id=ruolo.id) }}" class="btn btn-warning"><i class="fas fa-edit"></i> Modifica</a>
+        <a href="{{ url_for('ruoli.elimina', id=ruolo.id) }}" class="btn btn-danger"><i class="fas fa-trash"></i> Elimina</a>
+        {% endif %}
+        <a href="{{ url_for('ruoli.lista') }}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Indietro</a>
+    </div>
+</div>
+
+<div class="grid grid-2">
+    <div class="card">
+        <h2 style="font-size: 1.5rem; margin-bottom: 1.5rem;">Informazioni Ruolo</h2>
+        <p style="margin-bottom: 1rem;"><strong>Nome:</strong> {{ ruolo.nome }}</p>
+        <p style="margin-bottom: 1rem;"><strong>Descrizione:</strong> {{ ruolo.descrizione or 'Non specificata' }}</p>
+        <p style="margin-bottom: 1rem;">
+            <strong>Tipo:</strong>
+            {% if ruolo.is_system %}
+            <span class="badge badge-info">Ruolo di Sistema</span>
+            {% else %}
+            <span class="badge badge-primary">Ruolo Personalizzato</span>
+            {% endif %}
+        </p>
+        <p style="margin-bottom: 1rem;"><strong>Data Creazione:</strong> {{ ruolo.data_creazione.strftime('%d/%m/%Y %H:%M') }}</p>
+        <p style="margin-bottom: 1rem;"><strong>Permessi Assegnati:</strong> {{ ruolo.permessi|length }}</p>
+        <p><strong>Utenti con questo Ruolo:</strong> {{ utenti|length }}</p>
+    </div>
+
+    <div class="card">
+        <h2 style="font-size: 1.5rem; margin-bottom: 1.5rem;">Utenti Assegnati</h2>
+        {% if utenti %}
+        <div style="max-height: 400px; overflow-y: auto;">
+            {% for utente in utenti %}
+            <div style="padding: 0.75rem; margin-bottom: 0.5rem; background: #f8fafc; border-radius: 6px; display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <strong>{{ utente.username }}</strong>
+                    <br><small style="color: #64748b;">{{ utente.email }}</small>
+                </div>
+                <a href="{{ url_for('auth.modifica_utente', id=utente.id) }}" class="btn btn-sm btn-primary"><i class="fas fa-edit"></i></a>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p style="color: #64748b; text-align: center; padding: 2rem;">Nessun utente assegnato a questo ruolo</p>
+        {% endif %}
+    </div>
+</div>
+
+<div class="card" style="margin-top: 1.5rem;">
+    <h2 style="font-size: 1.5rem; margin-bottom: 1.5rem;">Permessi Assegnati</h2>
+    {% if ruolo.permessi %}
+    <div class="grid grid-3">
+        {% set permessi_per_modulo = {} %}
+        {% for permesso in ruolo.permessi %}
+            {% if permesso.modulo not in permessi_per_modulo %}
+                {% set _ = permessi_per_modulo.update({permesso.modulo: []}) %}
+            {% endif %}
+            {% set _ = permessi_per_modulo[permesso.modulo].append(permesso) %}
+        {% endfor %}
+
+        {% for modulo, permessi in permessi_per_modulo.items() %}
+        <div style="padding: 1rem; border: 1px solid #e2e8f0; border-radius: 8px;">
+            <h4 style="font-size: 1rem; font-weight: 600; margin-bottom: 0.75rem; text-transform: capitalize; color: #dc2626;">
+                <i class="fas fa-folder"></i> {{ modulo }}
+            </h4>
+            <ul style="list-style: none; padding: 0; margin: 0;">
+                {% for permesso in permessi %}
+                <li style="padding: 0.25rem 0; display: flex; align-items: center; gap: 0.5rem;">
+                    <i class="fas fa-check" style="color: #10b981; font-size: 0.75rem;"></i>
+                    <span>{{ permesso.nome }}</span>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p style="color: #64748b; text-align: center; padding: 2rem;">Nessun permesso assegnato a questo ruolo</p>
+    {% endif %}
+</div>
+{% endblock %}
