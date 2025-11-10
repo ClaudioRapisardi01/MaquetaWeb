@@ -1,1 +1,11 @@
-{% extends 'base.html' %}{% block title %}Dettaglio{% endblock %}{% block content %}<h1>Dettaglio</h1><a href="{{ url_for('documenti.lista') }}" class="btn btn-secondary">Indietro</a>{% endblock %}
+{% extends "base.html" %}
+{% block title %}Dettaglio{% endblock %}
+{% block content %}
+<div class="d-flex justify-between align-center mb-3">
+    <h1 style="font-size: 2rem; font-weight: 700;">Dettaglio</h1>
+    <a href="{{ url_for('${module}.lista') }}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Indietro</a>
+</div>
+<div class="card">
+    <p>Template in costruzione. Torna alla lista per continuare.</p>
+</div>
+{% endblock %}

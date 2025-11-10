@@ -1,1 +1,42 @@
-{% extends 'base.html' %}{% block title %}Dettaglio{% endblock %}{% block content %}<h1>Dettaglio</h1><a href="{{ url_for('eventi.lista') }}" class="btn btn-secondary">Indietro</a>{% endblock %}
+{% extends "base.html" %}
+{% block title %}{{ evento.titolo }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-between align-center mb-3">
+    <h1 style="font-size: 2rem; font-weight: 700;">{{ evento.titolo }}</h1>
+    <div class="d-flex gap-1">
+        {% if current_user.is_editor() or evento.creato_da == current_user.id %}
+        <a href="{{ url_for('eventi.modifica', id=evento.id) }}" class="btn btn-warning"><i class="fas fa-edit"></i> Modifica</a>
+        {% if current_user.is_editor() %}
+        <a href="{{ url_for('eventi.elimina', id=evento.id) }}" class="btn btn-danger"><i class="fas fa-trash"></i> Elimina</a>
+        {% endif %}
+        {% endif %}
+        <a href="{{ url_for('eventi.lista') }}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Indietro</a>
+    </div>
+</div>
+<div class="card">
+    <h2 style="font-size: 1.5rem; margin-bottom: 1.5rem;">Dettagli Evento</h2>
+    <div class="grid grid-2">
+        <div>
+            <p style="margin-bottom: 1rem;"><strong>Tipo:</strong> <span class="badge badge-info">{{ evento.tipo }}</span></p>
+            <p style="margin-bottom: 1rem;"><strong>Data Inizio:</strong> {{ evento.data_inizio.strftime('%d/%m/%Y %H:%M') }}</p>
+            {% if evento.data_fine %}<p style="margin-bottom: 1rem;"><strong>Data Fine:</strong> {{ evento.data_fine.strftime('%d/%m/%Y %H:%M') }}</p>{% endif %}
+        </div>
+        <div>
+            <p style="margin-bottom: 1rem;"><strong>Luogo:</strong> {{ evento.luogo or 'Non specificato' }}</p>
+            <p style="margin-bottom: 1rem;"><strong>Città:</strong> {{ evento.citta or 'Non specificata' }}</p>
+            <p style="margin-bottom: 1rem;"><strong>Paese:</strong> {{ evento.paese or 'Non specificato' }}</p>
+        </div>
+    </div>
+    {% if evento.descrizione %}
+    <h3 style="font-size: 1.25rem; margin: 1.5rem 0 1rem;">Descrizione</h3>
+    <p>{{ evento.descrizione }}</p>
+    {% endif %}
+    {% if evento.indirizzo %}
+    <p style="margin-top: 1rem;"><strong>Indirizzo:</strong> {{ evento.indirizzo }}</p>
+    {% endif %}
+    {% if evento.note %}
+    <h3 style="font-size: 1.25rem; margin: 1.5rem 0 1rem;">Note</h3>
+    <p>{{ evento.note }}</p>
+    {% endif %}
+</div>
+{% endblock %}
