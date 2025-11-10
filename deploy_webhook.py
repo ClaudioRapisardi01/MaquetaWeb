@@ -3,8 +3,8 @@ import os
 import psutil
 from flask import Flask, request
 
-APP_PATH = r"C:\Apps\MyApp"
-APP_SCRIPT = "main.py"
+APP_PATH = r"C:\Users\claud\PycharmProjects\MaquetaWeb"
+APP_SCRIPT = "app.py"
 REQUIREMENTS = os.path.join(APP_PATH, "requirements.txt")
 
 app = Flask(__name__)
