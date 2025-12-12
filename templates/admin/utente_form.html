@@ -1,0 +1,372 @@
+{% extends "base.html" %}
+
+{% block title %}{{ 'Modifica' if utente else 'Nuovo' }} Utente - Maqueta Web{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="page-header">
+    <div>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-2">
+                <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}" class="text-decoration-none">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('lista_utenti') }}" class="text-decoration-none">Utenti</a></li>
+                <li class="breadcrumb-item active">{{ 'Modifica' if utente else 'Nuovo' }}</li>
+            </ol>
+        </nav>
+        <h1>
+            <i class="bi bi-{{ 'pencil-square' if utente else 'person-plus' }}"></i>
+            {{ 'Modifica Utente' if utente else 'Nuovo Utente' }}
+        </h1>
+    </div>
+    <a href="{{ url_for('lista_utenti') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i>
+        Torna alla lista
+    </a>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <form method="POST" id="userForm">
+            <!-- Dati Account -->
+            <div class="card mb-4 slide-up">
+                <div class="card-header">
+                    <i class="bi bi-key me-2"></i>
+                    Credenziali Account
+                </div>
+                <div class="card-body">
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <label class="form-label">
+                                Username <span class="text-danger">*</span>
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="bi bi-at"></i>
+                                </span>
+                                <input type="text" class="form-control" name="username"
+                                    value="{{ utente.username if utente else '' }}"
+                                    placeholder="nome.cognome"
+                                    {{ 'readonly' if utente else '' }} required>
+                            </div>
+                            {% if utente %}
+                            <small class="text-muted">Lo username non puo essere modificato</small>
+                            {% else %}
+                            <small class="text-muted">Scegli un username univoco</small>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">
+                                Password {% if not utente %}<span class="text-danger">*</span>{% endif %}
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="bi bi-lock"></i>
+                                </span>
+                                <input type="password" class="form-control" name="password" id="password"
+                                    placeholder="{{ 'Lascia vuoto per non modificare' if utente else 'Inserisci password' }}"
+                                    {{ '' if utente else 'required' }}>
+                                <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordVisibility()">
+                                    <i class="bi bi-eye" id="toggleIcon"></i>
+                                </button>
+                            </div>
+                            {% if utente %}
+                            <small class="text-muted">Lascia vuoto per mantenere la password attuale</small>
+                            {% else %}
+                            <small class="text-muted">Minimo 6 caratteri</small>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dati Personali -->
+            <div class="card mb-4 slide-up stagger-1">
+                <div class="card-header">
+                    <i class="bi bi-person me-2"></i>
+                    Dati Personali
+                </div>
+                <div class="card-body">
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <label class="form-label">
+                                Nome <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" class="form-control" name="nome"
+                                value="{{ utente.nome if utente else '' }}"
+                                placeholder="Mario" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">
+                                Cognome <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" class="form-control" name="cognome"
+                                value="{{ utente.cognome if utente else '' }}"
+                                placeholder="Rossi" required>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Email</label>
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="bi bi-envelope"></i>
+                                </span>
+                                <input type="email" class="form-control" name="email"
+                                    value="{{ utente.email if utente and utente.email else '' }}"
+                                    placeholder="mario.rossi@email.com">
+                            </div>
+                            <small class="text-muted">Opzionale - usata per notifiche e recupero password</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ruolo e Stato -->
+            <div class="card mb-4 slide-up stagger-2">
+                <div class="card-header">
+                    <i class="bi bi-sliders me-2"></i>
+                    Ruolo e Stato
+                </div>
+                <div class="card-body">
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <div class="p-3 rounded" style="background: var(--gray-100);">
+                                <div class="form-check form-switch d-flex align-items-center">
+                                    <input class="form-check-input me-3" type="checkbox" name="is_admin" id="is_admin"
+                                        {{ 'checked' if utente and utente.is_admin else '' }}
+                                        style="width: 3.5rem; height: 1.75rem;">
+                                    <label class="form-check-label" for="is_admin">
+                                        <strong class="d-block">Amministratore</strong>
+                                        <small class="text-muted">Accesso completo a tutte le funzionalita e gestione utenti</small>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        {% if utente %}
+                        <div class="col-md-6">
+                            <div class="p-3 rounded" style="background: var(--gray-100);">
+                                <div class="form-check form-switch d-flex align-items-center">
+                                    <input class="form-check-input me-3" type="checkbox" name="attivo" id="attivo"
+                                        {{ 'checked' if utente.attivo else '' }}
+                                        style="width: 3.5rem; height: 1.75rem;">
+                                    <label class="form-check-label" for="attivo">
+                                        <strong class="d-block">Account Attivo</strong>
+                                        <small class="text-muted">Se disattivato, l'utente non potra accedere al sistema</small>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Permessi Menu -->
+            <div class="card mb-4 slide-up stagger-3">
+                <div class="card-header d-flex align-items-center justify-content-between">
+                    <div>
+                        <i class="bi bi-shield-check me-2"></i>
+                        Permessi Menu
+                    </div>
+                    <span class="badge bg-secondary">Ignorati per amministratori</span>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted mb-4">
+                        Seleziona le voci di menu che l'utente potra visualizzare. Gli amministratori hanno accesso a tutte le voci.
+                    </p>
+                    <div class="row g-3">
+                        {% for menu in menu_items_all %}
+                        <div class="col-md-6">
+                            <div class="form-check p-3 rounded border {% if menu.id in permessi_utente %}border-primary bg-primary bg-opacity-10{% endif %}" style="cursor: pointer;">
+                                <input class="form-check-input" type="checkbox"
+                                    name="menu_{{ menu.id }}" id="menu_{{ menu.id }}"
+                                    {% if menu.id in permessi_utente %}checked{% endif %}
+                                    style="width: 1.25rem; height: 1.25rem;"
+                                    onchange="updateCheckboxStyle(this)">
+                                <label class="form-check-label d-flex align-items-center ms-2" for="menu_{{ menu.id }}" style="cursor: pointer;">
+                                    <i class="{{ menu.icona }} me-2" style="font-size: 1.25rem; color: var(--primary);"></i>
+                                    <span class="fw-semibold">{{ menu.nome }}</span>
+                                </label>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pulsanti Azione -->
+            <div class="d-flex gap-3 mb-4">
+                <button type="submit" class="btn btn-primary btn-lg">
+                    <i class="bi bi-check-lg me-1"></i>
+                    {{ 'Salva Modifiche' if utente else 'Crea Utente' }}
+                </button>
+                <a href="{{ url_for('lista_utenti') }}" class="btn btn-secondary btn-lg">
+                    <i class="bi bi-x-lg me-1"></i>
+                    Annulla
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Sidebar Info -->
+    <div class="col-lg-4">
+        {% if utente %}
+        <!-- Info Utente -->
+        <div class="card mb-4 slide-up">
+            <div class="card-header">
+                <i class="bi bi-info-circle me-2"></i>
+                Informazioni Utente
+            </div>
+            <div class="card-body">
+                <div class="text-center mb-4">
+                    <div class="user-avatar mx-auto mb-3" style="width: 80px; height: 80px; font-size: 2rem;">
+                        {{ utente.nome[0] }}{{ utente.cognome[0] }}
+                    </div>
+                    <h5 class="mb-1">{{ utente.nome_completo }}</h5>
+                    <p class="text-muted mb-0">@{{ utente.username }}</p>
+                </div>
+
+                <div class="divider"></div>
+
+                <div class="d-flex justify-content-between py-2">
+                    <span class="text-muted">ID Utente</span>
+                    <span class="fw-semibold">#{{ utente.id }}</span>
+                </div>
+                <div class="d-flex justify-content-between py-2">
+                    <span class="text-muted">Creato il</span>
+                    <span class="fw-semibold">{{ utente.data_creazione.strftime('%d/%m/%Y') }}</span>
+                </div>
+                <div class="d-flex justify-content-between py-2">
+                    <span class="text-muted">Ultimo accesso</span>
+                    <span class="fw-semibold">
+                        {% if utente.ultimo_accesso %}
+                        {{ utente.ultimo_accesso.strftime('%d/%m/%Y %H:%M') }}
+                        {% else %}
+                        <span class="text-muted">Mai</span>
+                        {% endif %}
+                    </span>
+                </div>
+                <div class="d-flex justify-content-between py-2">
+                    <span class="text-muted">Stato</span>
+                    {% if utente.attivo %}
+                    <span class="badge bg-success">Attivo</span>
+                    {% else %}
+                    <span class="badge bg-danger">Disattivato</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Azioni Rapide -->
+        <div class="card slide-up stagger-1">
+            <div class="card-header">
+                <i class="bi bi-lightning-charge me-2"></i>
+                Azioni Rapide
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <button type="button" class="btn btn-outline-primary" onclick="document.getElementById('password').focus()">
+                        <i class="bi bi-key me-2"></i>Reset Password
+                    </button>
+                    {% if utente.id != current_user.id %}
+                    <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal">
+                        <i class="bi bi-trash me-2"></i>Elimina Utente
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <!-- Suggerimenti -->
+        <div class="card slide-up">
+            <div class="card-header">
+                <i class="bi bi-lightbulb me-2"></i>
+                Suggerimenti
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled mb-0">
+                    <li class="d-flex mb-3">
+                        <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
+                        <span>Usa username descrittivi come <code>nome.cognome</code></span>
+                    </li>
+                    <li class="d-flex mb-3">
+                        <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
+                        <span>La password deve essere sicura (min. 6 caratteri)</span>
+                    </li>
+                    <li class="d-flex mb-3">
+                        <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
+                        <span>L'email e opzionale ma consigliata</span>
+                    </li>
+                    <li class="d-flex">
+                        <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
+                        <span>Seleziona solo i permessi necessari</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% if utente and utente.id != current_user.id %}
+<!-- Delete Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-0">
+                <h5 class="modal-title">
+                    <i class="bi bi-exclamation-triangle text-danger me-2"></i>
+                    Conferma Eliminazione
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-0">Sei sicuro di voler eliminare l'utente <strong>{{ utente.nome_completo }}</strong>?</p>
+                <p class="text-muted small mt-2 mb-0">Questa azione non puo essere annullata.</p>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                <form action="{{ url_for('elimina_utente', id=utente.id) }}" method="POST" class="d-inline">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash me-1"></i>Elimina
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function togglePasswordVisibility() {
+        const password = document.getElementById('password');
+        const toggleIcon = document.getElementById('toggleIcon');
+
+        if (password.type === 'password') {
+            password.type = 'text';
+            toggleIcon.classList.remove('bi-eye');
+            toggleIcon.classList.add('bi-eye-slash');
+        } else {
+            password.type = 'password';
+            toggleIcon.classList.remove('bi-eye-slash');
+            toggleIcon.classList.add('bi-eye');
+        }
+    }
+
+    function updateCheckboxStyle(checkbox) {
+        const container = checkbox.closest('.form-check');
+        if (checkbox.checked) {
+            container.classList.add('border-primary', 'bg-primary', 'bg-opacity-10');
+        } else {
+            container.classList.remove('border-primary', 'bg-primary', 'bg-opacity-10');
+        }
+    }
+
+    // Form validation feedback
+    document.getElementById('userForm').addEventListener('submit', function(e) {
+        const btn = this.querySelector('button[type="submit"]');
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Salvataggio...';
+        btn.disabled = true;
+    });
+</script>
+{% endblock %}

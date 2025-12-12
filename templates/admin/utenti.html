@@ -1,0 +1,272 @@
+{% extends "base.html" %}
+
+{% block title %}Gestione Utenti - Maqueta Web{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="page-header">
+    <div>
+        <h1><i class="bi bi-people"></i>Gestione Utenti</h1>
+        <p class="text-muted mb-0 mt-1">Gestisci gli utenti del sistema</p>
+    </div>
+    <a href="{{ url_for('nuovo_utente') }}" class="btn btn-primary btn-lg">
+        <i class="bi bi-person-plus"></i>
+        Nuovo Utente
+    </a>
+</div>
+
+<!-- Stats Row -->
+<div class="row mb-4">
+    <div class="col-md-4 mb-3 mb-md-0">
+        <div class="card border-0" style="background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);">
+            <div class="card-body py-3">
+                <div class="d-flex align-items-center">
+                    <div class="rounded-circle bg-white bg-opacity-25 p-3 me-3">
+                        <i class="bi bi-people-fill text-white" style="font-size: 1.5rem;"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-white mb-0">{{ utenti|length }}</h3>
+                        <small class="text-white opacity-75">Utenti Totali</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3 mb-md-0">
+        <div class="card border-0" style="background: linear-gradient(135deg, var(--success) 0%, #059669 100%);">
+            <div class="card-body py-3">
+                <div class="d-flex align-items-center">
+                    <div class="rounded-circle bg-white bg-opacity-25 p-3 me-3">
+                        <i class="bi bi-check-circle-fill text-white" style="font-size: 1.5rem;"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-white mb-0">{{ utenti|selectattr('attivo')|list|length }}</h3>
+                        <small class="text-white opacity-75">Utenti Attivi</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-0" style="background: linear-gradient(135deg, var(--warning) 0%, #d97706 100%);">
+            <div class="card-body py-3">
+                <div class="d-flex align-items-center">
+                    <div class="rounded-circle bg-white bg-opacity-25 p-3 me-3">
+                        <i class="bi bi-shield-fill-check text-white" style="font-size: 1.5rem;"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-white mb-0">{{ utenti|selectattr('is_admin')|list|length }}</h3>
+                        <small class="text-white opacity-75">Amministratori</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Users Table -->
+<div class="card slide-up">
+    <div class="card-header d-flex align-items-center justify-content-between">
+        <div>
+            <i class="bi bi-table me-2"></i>
+            Lista Utenti
+        </div>
+        <div class="d-flex gap-2">
+            <div class="input-group" style="width: 250px;">
+                <span class="input-group-text bg-transparent border-end-0">
+                    <i class="bi bi-search text-muted"></i>
+                </span>
+                <input type="text" class="form-control border-start-0" id="searchInput" placeholder="Cerca utente...">
+            </div>
+        </div>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0" id="usersTable">
+                <thead>
+                    <tr>
+                        <th class="d-none d-md-table-cell" style="width: 50px;">#</th>
+                        <th>Utente</th>
+                        <th class="d-none d-lg-table-cell">Email</th>
+                        <th class="d-none d-md-table-cell">Ruolo</th>
+                        <th class="d-none d-md-table-cell">Stato</th>
+                        <th class="d-none d-lg-table-cell">Ultimo Accesso</th>
+                        <th class="text-end" style="width: 100px;">Azioni</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for utente in utenti %}
+                    <tr class="user-row">
+                        <td class="d-none d-md-table-cell">
+                            <span class="text-muted fw-semibold">{{ utente.id }}</span>
+                        </td>
+                        <td>
+                            <div class="user-info">
+                                <div class="avatar">
+                                    {{ utente.nome[0] }}{{ utente.cognome[0] }}
+                                </div>
+                                <div>
+                                    <div class="name">{{ utente.nome_completo }}</div>
+                                    <div class="username">@{{ utente.username }}</div>
+                                    <!-- Info extra visibili solo su mobile -->
+                                    <div class="d-md-none mt-1">
+                                        {% if utente.is_admin %}
+                                        <span class="badge bg-warning badge-sm me-1">Admin</span>
+                                        {% endif %}
+                                        {% if utente.attivo %}
+                                        <span class="badge bg-success badge-sm">Attivo</span>
+                                        {% else %}
+                                        <span class="badge bg-danger badge-sm">Disattivato</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="d-none d-lg-table-cell">
+                            {% if utente.email %}
+                            <a href="mailto:{{ utente.email }}" class="text-decoration-none">
+                                <i class="bi bi-envelope me-1 text-muted"></i>
+                                {{ utente.email }}
+                            </a>
+                            {% else %}
+                            <span class="text-muted">
+                                <i class="bi bi-dash-circle me-1"></i>
+                                Non impostata
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="d-none d-md-table-cell">
+                            {% if utente.is_admin %}
+                            <span class="badge bg-warning">
+                                <i class="bi bi-shield-check me-1"></i>Admin
+                            </span>
+                            {% else %}
+                            <span class="badge bg-secondary">
+                                <i class="bi bi-person me-1"></i>Utente
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="d-none d-md-table-cell">
+                            {% if utente.attivo %}
+                            <span class="badge bg-success">
+                                <i class="bi bi-check-circle me-1"></i>Attivo
+                            </span>
+                            {% else %}
+                            <span class="badge bg-danger">
+                                <i class="bi bi-x-circle me-1"></i>Disattivato
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="d-none d-lg-table-cell">
+                            {% if utente.ultimo_accesso %}
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-clock text-muted me-2"></i>
+                                <div>
+                                    <div class="small">{{ utente.ultimo_accesso.strftime('%d/%m/%Y') }}</div>
+                                    <div class="small text-muted">{{ utente.ultimo_accesso.strftime('%H:%M') }}</div>
+                                </div>
+                            </div>
+                            {% else %}
+                            <span class="text-muted">
+                                <i class="bi bi-hourglass me-1"></i>Mai
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="btn-group-actions justify-content-end">
+                                <a href="{{ url_for('modifica_utente', id=utente.id) }}"
+                                   class="btn btn-sm btn-outline-primary btn-icon"
+                                   data-bs-toggle="tooltip" title="Modifica">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                {% if utente.id != current_user.id %}
+                                <button type="button"
+                                        class="btn btn-sm btn-outline-danger btn-icon"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#deleteModal"
+                                        data-user-id="{{ utente.id }}"
+                                        data-user-name="{{ utente.nome_completo }}"
+                                        title="Elimina">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% if not utenti %}
+        <div class="empty-state py-5">
+            <i class="bi bi-people"></i>
+            <h5>Nessun utente trovato</h5>
+            <p class="text-muted">Inizia creando il primo utente</p>
+            <a href="{{ url_for('nuovo_utente') }}" class="btn btn-primary">
+                <i class="bi bi-person-plus me-1"></i>Crea Utente
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Delete Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-0">
+                <h5 class="modal-title">
+                    <i class="bi bi-exclamation-triangle text-danger me-2"></i>
+                    Conferma Eliminazione
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-0">Sei sicuro di voler eliminare l'utente <strong id="deleteUserName"></strong>?</p>
+                <p class="text-muted small mt-2 mb-0">Questa azione non puo essere annullata.</p>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                <form id="deleteForm" method="POST" class="d-inline">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash me-1"></i>Elimina
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Search functionality
+    document.getElementById('searchInput').addEventListener('keyup', function() {
+        const searchTerm = this.value.toLowerCase();
+        const rows = document.querySelectorAll('.user-row');
+
+        rows.forEach(row => {
+            const text = row.textContent.toLowerCase();
+            row.style.display = text.includes(searchTerm) ? '' : 'none';
+        });
+    });
+
+    // Delete modal
+    const deleteModal = document.getElementById('deleteModal');
+    deleteModal.addEventListener('show.bs.modal', function(event) {
+        const button = event.relatedTarget;
+        const userId = button.getAttribute('data-user-id');
+        const userName = button.getAttribute('data-user-name');
+
+        document.getElementById('deleteUserName').textContent = userName;
+        document.getElementById('deleteForm').action = '/admin/utenti/' + userId + '/elimina';
+    });
+
+    // Initialize tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function(tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+</script>
+{% endblock %}
