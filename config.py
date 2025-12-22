@@ -5,6 +5,6 @@ class Config:
 
     # Configurazione MySQL
     MYSQL_HOST = os.environ.get('MYSQL_HOST') or 'localhost'
-    MYSQL_USER = os.environ.get('MYSQL_USER') or 'root'
-    MYSQL_PASSWORD = os.environ.get('MYSQL_PASSWORD') or ''
+    MYSQL_USER = os.environ.get('MYSQL_USER') or 'tuoutente'
+    MYSQL_PASSWORD = os.environ.get('MYSQL_PASSWORD') or 'tuapassword'
     MYSQL_DB = os.environ.get('MYSQL_DB') or 'maquetaweb'
