@@ -160,6 +160,16 @@ class Menu:
         return None
 
     @staticmethod
+    def get_all():
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('SELECT * FROM menu ORDER BY ordine')
+        rows = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        return [Menu(**row) for row in rows]
+
+    @staticmethod
     def get_all_active():
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -183,6 +193,14 @@ class Menu:
                 VALUES (%s, %s, %s, %s, %s, %s)
             ''', (self.nome, self.icona, self.url, self.ordine, self.parent_id, self.attivo))
             self.id = cursor.lastrowid
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+    def delete(self):
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('DELETE FROM menu WHERE id = %s', (self.id,))
         conn.commit()
         cursor.close()
         conn.close()

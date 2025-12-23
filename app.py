@@ -204,6 +204,80 @@ def elimina_utente(id):
     return redirect(url_for('lista_utenti'))
 
 
+# ============ ROUTES ADMIN MENU ============
+
+@app.route('/admin/menu')
+@login_required
+@admin_required
+def lista_menu():
+    menu_items = Menu.get_all()
+    return render_template('admin/menu.html', menu_items=menu_items)
+
+
+@app.route('/admin/menu/nuovo', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def nuovo_menu():
+    if request.method == 'POST':
+        nome = request.form.get('nome')
+        icona = request.form.get('icona') or 'bi-circle'
+        url = request.form.get('url')
+        ordine = int(request.form.get('ordine') or 0)
+        attivo = request.form.get('attivo') == 'on'
+
+        menu = Menu(
+            nome=nome,
+            icona=icona,
+            url=url,
+            ordine=ordine,
+            attivo=attivo
+        )
+        menu.save()
+
+        flash('Voce menu creata con successo.', 'success')
+        return redirect(url_for('lista_menu'))
+
+    return render_template('admin/menu_form.html')
+
+
+@app.route('/admin/menu/<int:id>/modifica', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def modifica_menu(id):
+    menu = Menu.get_by_id(id)
+    if not menu:
+        flash('Voce menu non trovata.', 'danger')
+        return redirect(url_for('lista_menu'))
+
+    if request.method == 'POST':
+        menu.nome = request.form.get('nome')
+        menu.icona = request.form.get('icona') or 'bi-circle'
+        menu.url = request.form.get('url')
+        menu.ordine = int(request.form.get('ordine') or 0)
+        menu.attivo = request.form.get('attivo') == 'on'
+
+        menu.save()
+
+        flash('Voce menu modificata con successo.', 'success')
+        return redirect(url_for('lista_menu'))
+
+    return render_template('admin/menu_form.html', menu=menu)
+
+
+@app.route('/admin/menu/<int:id>/elimina', methods=['POST'])
+@login_required
+@admin_required
+def elimina_menu(id):
+    menu = Menu.get_by_id(id)
+    if not menu:
+        flash('Voce menu non trovata.', 'danger')
+        return redirect(url_for('lista_menu'))
+
+    menu.delete()
+    flash('Voce menu eliminata con successo.', 'success')
+    return redirect(url_for('lista_menu'))
+
+
 # ============ INIZIALIZZAZIONE DATABASE ============
 
 def init_db():
@@ -229,9 +303,8 @@ def init_db():
         menu_utenti = Menu(nome='Utenti', icona='bi-people', url='/admin/utenti', ordine=1)
         menu_utenti.save()
 
-        # Admin ha tutti i permessi
-        for menu in Menu.get_all_active():
-            Permesso.set_permesso(admin.id, menu.id, True)
+        menu_gestione_menu = Menu(nome='Gestione Menu', icona='bi-list-ul', url='/admin/menu', ordine=2)
+        menu_gestione_menu.save()
 
         print('Database inizializzato con utente admin (password: admin123)')
 

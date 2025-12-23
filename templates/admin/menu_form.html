@@ -1,0 +1,330 @@
+{% extends "base.html" %}
+
+{% block title %}{{ 'Modifica' if menu else 'Nuova' }} Voce Menu - Maqueta Web{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="page-header">
+    <div>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-2">
+                <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}" class="text-decoration-none">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('lista_menu') }}" class="text-decoration-none">Gestione Menu</a></li>
+                <li class="breadcrumb-item active">{{ 'Modifica' if menu else 'Nuova' }}</li>
+            </ol>
+        </nav>
+        <h1>
+            <i class="bi bi-{{ 'pencil-square' if menu else 'plus-lg' }}"></i>
+            {{ 'Modifica Voce Menu' if menu else 'Nuova Voce Menu' }}
+        </h1>
+    </div>
+    <a href="{{ url_for('lista_menu') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i>
+        Torna alla lista
+    </a>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <form method="POST" id="menuForm">
+            <!-- Dati Base -->
+            <div class="card mb-4 slide-up">
+                <div class="card-header">
+                    <i class="bi bi-info-circle me-2"></i>
+                    Informazioni Base
+                </div>
+                <div class="card-body">
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <label class="form-label">
+                                Nome <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" class="form-control" name="nome"
+                                value="{{ menu.nome if menu else '' }}"
+                                placeholder="es. Dashboard" required>
+                            <small class="text-muted">Il nome visualizzato nel menu</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">
+                                URL <span class="text-danger">*</span>
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="bi bi-link-45deg"></i>
+                                </span>
+                                <input type="text" class="form-control" name="url"
+                                    value="{{ menu.url if menu else '' }}"
+                                    placeholder="es. /dashboard" required>
+                            </div>
+                            <small class="text-muted">Il percorso della pagina</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Icona e Ordine -->
+            <div class="card mb-4 slide-up stagger-1">
+                <div class="card-header">
+                    <i class="bi bi-palette me-2"></i>
+                    Aspetto e Posizione
+                </div>
+                <div class="card-body">
+                    <div class="row g-4">
+                        <div class="col-md-8">
+                            <label class="form-label">Icona Bootstrap</label>
+                            <div class="input-group">
+                                <span class="input-group-text" id="iconPreview">
+                                    <i class="{{ menu.icona if menu else 'bi-circle' }}"></i>
+                                </span>
+                                <input type="text" class="form-control" name="icona" id="iconInput"
+                                    value="{{ menu.icona if menu else 'bi-circle' }}"
+                                    placeholder="es. bi-house">
+                            </div>
+                            <small class="text-muted">
+                                Usa le icone di <a href="https://icons.getbootstrap.com/" target="_blank">Bootstrap Icons</a>
+                            </small>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Ordine</label>
+                            <input type="number" class="form-control" name="ordine"
+                                value="{{ menu.ordine if menu else 0 }}"
+                                min="0" placeholder="0">
+                            <small class="text-muted">Posizione nel menu (0 = primo)</small>
+                        </div>
+                    </div>
+
+                    <!-- Icone suggerite -->
+                    <div class="mt-4">
+                        <label class="form-label">Icone suggerite</label>
+                        <div class="d-flex flex-wrap gap-2">
+                            <button type="button" class="btn btn-outline-secondary icon-btn" data-icon="bi-house">
+                                <i class="bi bi-house"></i>
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary icon-btn" data-icon="bi-speedometer2">
+                                <i class="bi bi-speedometer2"></i>
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary icon-btn" data-icon="bi-people">
+                                <i class="bi bi-people"></i>
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary icon-btn" data-icon="bi-gear">
+                                <i class="bi bi-gear"></i>
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary icon-btn" data-icon="bi-folder">
+                                <i class="bi bi-folder"></i>
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary icon-btn" data-icon="bi-file-text">
+                                <i class="bi bi-file-text"></i>
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary icon-btn" data-icon="bi-calendar">
+                                <i class="bi bi-calendar"></i>
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary icon-btn" data-icon="bi-graph-up">
+                                <i class="bi bi-graph-up"></i>
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary icon-btn" data-icon="bi-box">
+                                <i class="bi bi-box"></i>
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary icon-btn" data-icon="bi-cart">
+                                <i class="bi bi-cart"></i>
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary icon-btn" data-icon="bi-chat">
+                                <i class="bi bi-chat"></i>
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary icon-btn" data-icon="bi-envelope">
+                                <i class="bi bi-envelope"></i>
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary icon-btn" data-icon="bi-list-ul">
+                                <i class="bi bi-list-ul"></i>
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary icon-btn" data-icon="bi-database">
+                                <i class="bi bi-database"></i>
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary icon-btn" data-icon="bi-tools">
+                                <i class="bi bi-tools"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stato -->
+            <div class="card mb-4 slide-up stagger-2">
+                <div class="card-header">
+                    <i class="bi bi-sliders me-2"></i>
+                    Stato
+                </div>
+                <div class="card-body">
+                    <div class="p-3 rounded" style="background: var(--gray-100);">
+                        <div class="form-check form-switch d-flex align-items-center">
+                            <input class="form-check-input me-3" type="checkbox" name="attivo" id="attivo"
+                                {{ 'checked' if (menu and menu.attivo) or not menu else '' }}
+                                style="width: 3.5rem; height: 1.75rem;">
+                            <label class="form-check-label" for="attivo">
+                                <strong class="d-block">Voce Attiva</strong>
+                                <small class="text-muted">Se disattivata, la voce non apparirà nel menu</small>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pulsanti Azione -->
+            <div class="d-flex gap-3 mb-4">
+                <button type="submit" class="btn btn-primary btn-lg">
+                    <i class="bi bi-check-lg me-1"></i>
+                    {{ 'Salva Modifiche' if menu else 'Crea Voce' }}
+                </button>
+                <a href="{{ url_for('lista_menu') }}" class="btn btn-secondary btn-lg">
+                    <i class="bi bi-x-lg me-1"></i>
+                    Annulla
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Sidebar Info -->
+    <div class="col-lg-4">
+        {% if menu %}
+        <!-- Info Menu -->
+        <div class="card mb-4 slide-up">
+            <div class="card-header">
+                <i class="bi bi-info-circle me-2"></i>
+                Anteprima
+            </div>
+            <div class="card-body">
+                <div class="p-3 rounded" style="background: var(--dark); color: #fff;">
+                    <div class="d-flex align-items-center">
+                        <i class="{{ menu.icona }} me-3" style="font-size: 1.25rem;"></i>
+                        <span>{{ menu.nome }}</span>
+                    </div>
+                </div>
+                <div class="divider my-3"></div>
+                <div class="d-flex justify-content-between py-2">
+                    <span class="text-muted">ID</span>
+                    <span class="fw-semibold">#{{ menu.id }}</span>
+                </div>
+                <div class="d-flex justify-content-between py-2">
+                    <span class="text-muted">URL</span>
+                    <code>{{ menu.url }}</code>
+                </div>
+                <div class="d-flex justify-content-between py-2">
+                    <span class="text-muted">Stato</span>
+                    {% if menu.attivo %}
+                    <span class="badge bg-success">Attivo</span>
+                    {% else %}
+                    <span class="badge bg-danger">Disattivato</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Azioni Rapide -->
+        <div class="card slide-up stagger-1">
+            <div class="card-header">
+                <i class="bi bi-lightning-charge me-2"></i>
+                Azioni Rapide
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal">
+                        <i class="bi bi-trash me-2"></i>Elimina Voce
+                    </button>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <!-- Suggerimenti -->
+        <div class="card slide-up">
+            <div class="card-header">
+                <i class="bi bi-lightbulb me-2"></i>
+                Suggerimenti
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled mb-0">
+                    <li class="d-flex mb-3">
+                        <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
+                        <span>Usa nomi brevi e descrittivi</span>
+                    </li>
+                    <li class="d-flex mb-3">
+                        <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
+                        <span>L'URL deve iniziare con <code>/</code></span>
+                    </li>
+                    <li class="d-flex mb-3">
+                        <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
+                        <span>Scegli un'icona appropriata per la funzione</span>
+                    </li>
+                    <li class="d-flex">
+                        <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
+                        <span>L'ordine determina la posizione nel menu</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% if menu %}
+<!-- Delete Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-0">
+                <h5 class="modal-title">
+                    <i class="bi bi-exclamation-triangle text-danger me-2"></i>
+                    Conferma Eliminazione
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-0">Sei sicuro di voler eliminare la voce menu <strong>{{ menu.nome }}</strong>?</p>
+                <p class="text-muted small mt-2 mb-0">Questa azione non può essere annullata.</p>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                <form action="{{ url_for('elimina_menu', id=menu.id) }}" method="POST" class="d-inline">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash me-1"></i>Elimina
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Icon preview
+    const iconInput = document.getElementById('iconInput');
+    const iconPreview = document.getElementById('iconPreview');
+
+    iconInput.addEventListener('input', function() {
+        const iconClass = this.value || 'bi-circle';
+        iconPreview.innerHTML = '<i class="' + iconClass + '"></i>';
+    });
+
+    // Icon buttons
+    document.querySelectorAll('.icon-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const icon = this.getAttribute('data-icon');
+            iconInput.value = icon;
+            iconPreview.innerHTML = '<i class="' + icon + '"></i>';
+
+            // Highlight selected
+            document.querySelectorAll('.icon-btn').forEach(b => b.classList.remove('btn-primary'));
+            document.querySelectorAll('.icon-btn').forEach(b => b.classList.add('btn-outline-secondary'));
+            this.classList.remove('btn-outline-secondary');
+            this.classList.add('btn-primary');
+        });
+    });
+
+    // Form validation feedback
+    document.getElementById('menuForm').addEventListener('submit', function(e) {
+        const btn = this.querySelector('button[type="submit"]');
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Salvataggio...';
+        btn.disabled = true;
+    });
+</script>
+{% endblock %}

@@ -44,7 +44,8 @@ CREATE TABLE IF NOT EXISTS permessi (
 -- Inserimento voci menu di default
 INSERT INTO menu (nome, icona, url, ordine, attivo) VALUES
 ('Dashboard', 'bi-speedometer2', '/dashboard', 0, TRUE),
-('Utenti', 'bi-people', '/admin/utenti', 1, TRUE);
+('Utenti', 'bi-people', '/admin/utenti', 1, TRUE),
+('Gestione Menu', 'bi-list-ul', '/admin/menu', 2, TRUE);
 
 -- NOTA: L'utente admin viene creato automaticamente da app.py con password: admin123
 -- Gli amministratori vedono tutte le voci di menu indipendentemente dai permessi

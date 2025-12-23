@@ -1,0 +1,215 @@
+{% extends "base.html" %}
+
+{% block title %}Gestione Menu - Maqueta Web{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="page-header">
+    <div>
+        <h1><i class="bi bi-list-ul"></i>Gestione Menu</h1>
+        <p class="text-muted mb-0 mt-1">Gestisci le voci del menu laterale</p>
+    </div>
+    <a href="{{ url_for('nuovo_menu') }}" class="btn btn-primary btn-lg">
+        <i class="bi bi-plus-lg"></i>
+        Nuova Voce
+    </a>
+</div>
+
+<!-- Stats Row -->
+<div class="row mb-4">
+    <div class="col-md-4 mb-3 mb-md-0">
+        <div class="card border-0" style="background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);">
+            <div class="card-body py-3">
+                <div class="d-flex align-items-center">
+                    <div class="rounded-circle bg-white bg-opacity-25 p-3 me-3">
+                        <i class="bi bi-list-ul text-white" style="font-size: 1.5rem;"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-white mb-0">{{ menu_items|length }}</h3>
+                        <small class="text-white opacity-75">Voci Totali</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3 mb-md-0">
+        <div class="card border-0" style="background: linear-gradient(135deg, var(--success) 0%, #059669 100%);">
+            <div class="card-body py-3">
+                <div class="d-flex align-items-center">
+                    <div class="rounded-circle bg-white bg-opacity-25 p-3 me-3">
+                        <i class="bi bi-check-circle-fill text-white" style="font-size: 1.5rem;"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-white mb-0">{{ menu_items|selectattr('attivo')|list|length }}</h3>
+                        <small class="text-white opacity-75">Voci Attive</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-0" style="background: linear-gradient(135deg, var(--warning) 0%, #d97706 100%);">
+            <div class="card-body py-3">
+                <div class="d-flex align-items-center">
+                    <div class="rounded-circle bg-white bg-opacity-25 p-3 me-3">
+                        <i class="bi bi-eye-slash-fill text-white" style="font-size: 1.5rem;"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-white mb-0">{{ menu_items|rejectattr('attivo')|list|length }}</h3>
+                        <small class="text-white opacity-75">Voci Disattivate</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Menu Table -->
+<div class="card slide-up">
+    <div class="card-header d-flex align-items-center justify-content-between">
+        <div>
+            <i class="bi bi-table me-2"></i>
+            Lista Voci Menu
+        </div>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0" id="menuTable">
+                <thead>
+                    <tr>
+                        <th class="d-none d-md-table-cell" style="width: 50px;">Ordine</th>
+                        <th>Nome</th>
+                        <th class="d-none d-md-table-cell">Icona</th>
+                        <th class="d-none d-lg-table-cell">URL</th>
+                        <th class="d-none d-md-table-cell">Stato</th>
+                        <th class="text-end" style="width: 100px;">Azioni</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in menu_items %}
+                    <tr class="menu-row">
+                        <td class="d-none d-md-table-cell">
+                            <span class="badge bg-secondary">{{ item.ordine }}</span>
+                        </td>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <div class="rounded-circle bg-primary bg-opacity-10 p-2 me-3">
+                                    <i class="{{ item.icona }} text-primary" style="font-size: 1.25rem;"></i>
+                                </div>
+                                <div>
+                                    <div class="fw-semibold">{{ item.nome }}</div>
+                                    <div class="small text-muted d-md-none">{{ item.url }}</div>
+                                    <!-- Info extra visibili solo su mobile -->
+                                    <div class="d-md-none mt-1">
+                                        <span class="badge bg-secondary badge-sm me-1">Ordine: {{ item.ordine }}</span>
+                                        {% if item.attivo %}
+                                        <span class="badge bg-success badge-sm">Attivo</span>
+                                        {% else %}
+                                        <span class="badge bg-danger badge-sm">Disattivato</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="d-none d-md-table-cell">
+                            <code>{{ item.icona }}</code>
+                        </td>
+                        <td class="d-none d-lg-table-cell">
+                            <code>{{ item.url }}</code>
+                        </td>
+                        <td class="d-none d-md-table-cell">
+                            {% if item.attivo %}
+                            <span class="badge bg-success">
+                                <i class="bi bi-check-circle me-1"></i>Attivo
+                            </span>
+                            {% else %}
+                            <span class="badge bg-danger">
+                                <i class="bi bi-x-circle me-1"></i>Disattivato
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="btn-group-actions justify-content-end">
+                                <a href="{{ url_for('modifica_menu', id=item.id) }}"
+                                   class="btn btn-sm btn-outline-primary btn-icon"
+                                   data-bs-toggle="tooltip" title="Modifica">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <button type="button"
+                                        class="btn btn-sm btn-outline-danger btn-icon"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#deleteModal"
+                                        data-menu-id="{{ item.id }}"
+                                        data-menu-name="{{ item.nome }}"
+                                        title="Elimina">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% if not menu_items %}
+        <div class="empty-state py-5">
+            <i class="bi bi-list-ul"></i>
+            <h5>Nessuna voce menu trovata</h5>
+            <p class="text-muted">Inizia creando la prima voce</p>
+            <a href="{{ url_for('nuovo_menu') }}" class="btn btn-primary">
+                <i class="bi bi-plus-lg me-1"></i>Crea Voce Menu
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Delete Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-0">
+                <h5 class="modal-title">
+                    <i class="bi bi-exclamation-triangle text-danger me-2"></i>
+                    Conferma Eliminazione
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-0">Sei sicuro di voler eliminare la voce menu <strong id="deleteMenuName"></strong>?</p>
+                <p class="text-muted small mt-2 mb-0">Questa azione non può essere annullata. I permessi associati verranno eliminati.</p>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                <form id="deleteForm" method="POST" class="d-inline">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash me-1"></i>Elimina
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Delete modal
+    const deleteModal = document.getElementById('deleteModal');
+    deleteModal.addEventListener('show.bs.modal', function(event) {
+        const button = event.relatedTarget;
+        const menuId = button.getAttribute('data-menu-id');
+        const menuName = button.getAttribute('data-menu-name');
+
+        document.getElementById('deleteMenuName').textContent = menuName;
+        document.getElementById('deleteForm').action = '/admin/menu/' + menuId + '/elimina';
+    });
+
+    // Initialize tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function(tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+</script>
+{% endblock %}
