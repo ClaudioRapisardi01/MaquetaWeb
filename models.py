@@ -295,3 +295,242 @@ class Permesso:
         conn.commit()
         cursor.close()
         conn.close()
+
+
+class Servizio:
+    def __init__(self, id=None, nome=None, descrizione=None, descrizione_breve=None,
+                 foto=None, icona='bi-gear', prezzo=None, durata=None,
+                 attivo=True, in_evidenza=False, ordine=0, data_creazione=None):
+        self.id = id
+        self.nome = nome
+        self.descrizione = descrizione
+        self.descrizione_breve = descrizione_breve
+        self.foto = foto
+        self.icona = icona
+        self.prezzo = prezzo
+        self.durata = durata
+        self.attivo = attivo
+        self.in_evidenza = in_evidenza
+        self.ordine = ordine
+        self.data_creazione = data_creazione
+
+    @staticmethod
+    def get_by_id(servizio_id):
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('SELECT * FROM servizi WHERE id = %s', (servizio_id,))
+        row = cursor.fetchone()
+        cursor.close()
+        conn.close()
+        if row:
+            return Servizio(**row)
+        return None
+
+    @staticmethod
+    def get_all():
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('SELECT * FROM servizi ORDER BY ordine, id')
+        rows = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        return [Servizio(**row) for row in rows]
+
+    @staticmethod
+    def get_all_active():
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('SELECT * FROM servizi WHERE attivo = TRUE ORDER BY ordine, id')
+        rows = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        return [Servizio(**row) for row in rows]
+
+    @staticmethod
+    def get_in_evidenza():
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('SELECT * FROM servizi WHERE attivo = TRUE AND in_evidenza = TRUE ORDER BY ordine, id')
+        rows = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        return [Servizio(**row) for row in rows]
+
+    def save(self):
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        if self.id:
+            cursor.execute('''
+                UPDATE servizi SET nome=%s, descrizione=%s, descrizione_breve=%s,
+                foto=%s, icona=%s, prezzo=%s, durata=%s, attivo=%s, in_evidenza=%s, ordine=%s
+                WHERE id=%s
+            ''', (self.nome, self.descrizione, self.descrizione_breve,
+                  self.foto, self.icona, self.prezzo, self.durata,
+                  self.attivo, self.in_evidenza, self.ordine, self.id))
+        else:
+            cursor.execute('''
+                INSERT INTO servizi (nome, descrizione, descrizione_breve, foto, icona, prezzo, durata, attivo, in_evidenza, ordine)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ''', (self.nome, self.descrizione, self.descrizione_breve,
+                  self.foto, self.icona, self.prezzo, self.durata,
+                  self.attivo, self.in_evidenza, self.ordine))
+            self.id = cursor.lastrowid
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+    def delete(self):
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('DELETE FROM servizi WHERE id = %s', (self.id,))
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+
+class News:
+    def __init__(self, id=None, titolo=None, slug=None, contenuto=None, estratto=None,
+                 immagine=None, autore_id=None, categoria=None, tags=None,
+                 pubblicato=False, in_evidenza=False, data_pubblicazione=None,
+                 data_creazione=None, data_modifica=None, visualizzazioni=0):
+        self.id = id
+        self.titolo = titolo
+        self.slug = slug
+        self.contenuto = contenuto
+        self.estratto = estratto
+        self.immagine = immagine
+        self.autore_id = autore_id
+        self.categoria = categoria
+        self.tags = tags
+        self.pubblicato = pubblicato
+        self.in_evidenza = in_evidenza
+        self.data_pubblicazione = data_pubblicazione
+        self.data_creazione = data_creazione
+        self.data_modifica = data_modifica
+        self.visualizzazioni = visualizzazioni
+
+    @staticmethod
+    def get_by_id(news_id):
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('SELECT * FROM news WHERE id = %s', (news_id,))
+        row = cursor.fetchone()
+        cursor.close()
+        conn.close()
+        if row:
+            return News(**row)
+        return None
+
+    @staticmethod
+    def get_by_slug(slug):
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('SELECT * FROM news WHERE slug = %s', (slug,))
+        row = cursor.fetchone()
+        cursor.close()
+        conn.close()
+        if row:
+            return News(**row)
+        return None
+
+    @staticmethod
+    def get_all():
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('SELECT * FROM news ORDER BY data_creazione DESC')
+        rows = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        return [News(**row) for row in rows]
+
+    @staticmethod
+    def get_all_published():
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('''
+            SELECT * FROM news
+            WHERE pubblicato = TRUE AND (data_pubblicazione IS NULL OR data_pubblicazione <= NOW())
+            ORDER BY data_pubblicazione DESC, data_creazione DESC
+        ''')
+        rows = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        return [News(**row) for row in rows]
+
+    @staticmethod
+    def get_in_evidenza():
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('''
+            SELECT * FROM news
+            WHERE pubblicato = TRUE AND in_evidenza = TRUE
+            AND (data_pubblicazione IS NULL OR data_pubblicazione <= NOW())
+            ORDER BY data_pubblicazione DESC, data_creazione DESC
+        ''')
+        rows = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        return [News(**row) for row in rows]
+
+    @staticmethod
+    def get_by_categoria(categoria):
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('''
+            SELECT * FROM news
+            WHERE pubblicato = TRUE AND categoria = %s
+            AND (data_pubblicazione IS NULL OR data_pubblicazione <= NOW())
+            ORDER BY data_pubblicazione DESC
+        ''', (categoria,))
+        rows = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        return [News(**row) for row in rows]
+
+    def get_autore(self):
+        """Restituisce l'oggetto Utente dell'autore."""
+        if self.autore_id:
+            return Utente.get_by_id(self.autore_id)
+        return None
+
+    def save(self):
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        if self.id:
+            cursor.execute('''
+                UPDATE news SET titolo=%s, slug=%s, contenuto=%s, estratto=%s,
+                immagine=%s, autore_id=%s, categoria=%s, tags=%s, pubblicato=%s,
+                in_evidenza=%s, data_pubblicazione=%s, data_modifica=NOW()
+                WHERE id=%s
+            ''', (self.titolo, self.slug, self.contenuto, self.estratto,
+                  self.immagine, self.autore_id, self.categoria, self.tags,
+                  self.pubblicato, self.in_evidenza, self.data_pubblicazione, self.id))
+        else:
+            cursor.execute('''
+                INSERT INTO news (titolo, slug, contenuto, estratto, immagine, autore_id,
+                categoria, tags, pubblicato, in_evidenza, data_pubblicazione)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ''', (self.titolo, self.slug, self.contenuto, self.estratto,
+                  self.immagine, self.autore_id, self.categoria, self.tags,
+                  self.pubblicato, self.in_evidenza, self.data_pubblicazione))
+            self.id = cursor.lastrowid
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+    def delete(self):
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('DELETE FROM news WHERE id = %s', (self.id,))
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+    def incrementa_visualizzazioni(self):
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('UPDATE news SET visualizzazioni = visualizzazioni + 1 WHERE id = %s', (self.id,))
+        conn.commit()
+        cursor.close()
+        conn.close()
+        self.visualizzazioni += 1

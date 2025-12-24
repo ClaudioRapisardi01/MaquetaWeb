@@ -4,7 +4,8 @@
       "Bash(if not exist \"c:\\Users\\crapisardi\\Desktop\\ProgrammiCodice\\MaquetaWeb\\templates\" mkdir \"c:\\Users\\crapisardi\\Desktop\\ProgrammiCodice\\MaquetaWeb\\templates\")",
       "Bash(if not exist \"c:\\Users\\crapisardi\\Desktop\\ProgrammiCodice\\MaquetaWeb\\templates\\admin\" mkdir \"c:\\Users\\crapisardi\\Desktop\\ProgrammiCodice\\MaquetaWeb\\templates\\admin\")",
       "Bash(if not exist \"c:\\Users\\crapisardi\\Desktop\\ProgrammiCodice\\MaquetaWeb\\static\" mkdir \"c:\\Users\\crapisardi\\Desktop\\ProgrammiCodice\\MaquetaWeb\\static\")",
-      "Bash(if not exist \"c:\\Users\\crapisardi\\Desktop\\ProgrammiCodice\\MaquetaWeb\\static\\css\" mkdir \"c:\\Users\\crapisardi\\Desktop\\ProgrammiCodice\\MaquetaWeb\\static\\css\")"
+      "Bash(if not exist \"c:\\Users\\crapisardi\\Desktop\\ProgrammiCodice\\MaquetaWeb\\static\\css\" mkdir \"c:\\Users\\crapisardi\\Desktop\\ProgrammiCodice\\MaquetaWeb\\static\\css\")",
+      "Bash(if not exist \"c:\\\\Users\\\\claud\\\\Desktop\\\\MaquetaWeb\\\\static\\\\uploads\" mkdir \"c:\\\\Users\\\\claud\\\\Desktop\\\\MaquetaWeb\\\\static\\\\uploads\")"
     ]
   }
 }

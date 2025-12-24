@@ -59,6 +59,46 @@ def init_database():
         )
     ''')
 
+    # Tabella servizi
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS servizi (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            nome VARCHAR(150) NOT NULL,
+            descrizione TEXT,
+            descrizione_breve VARCHAR(300),
+            foto VARCHAR(500),
+            icona VARCHAR(50) DEFAULT 'bi-gear',
+            prezzo DECIMAL(10,2) NULL,
+            durata VARCHAR(50) NULL,
+            attivo BOOLEAN DEFAULT TRUE,
+            in_evidenza BOOLEAN DEFAULT FALSE,
+            ordine INT DEFAULT 0,
+            data_creazione DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+
+    # Tabella news
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS news (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            titolo VARCHAR(255) NOT NULL,
+            slug VARCHAR(255) UNIQUE,
+            contenuto TEXT,
+            estratto VARCHAR(500),
+            immagine VARCHAR(500),
+            autore_id INT,
+            categoria VARCHAR(100),
+            tags VARCHAR(255),
+            pubblicato BOOLEAN DEFAULT FALSE,
+            in_evidenza BOOLEAN DEFAULT FALSE,
+            data_pubblicazione DATETIME NULL,
+            data_creazione DATETIME DEFAULT CURRENT_TIMESTAMP,
+            data_modifica DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            visualizzazioni INT DEFAULT 0,
+            FOREIGN KEY (autore_id) REFERENCES utenti(id) ON DELETE SET NULL
+        )
+    ''')
+
     conn.commit()
     cursor.close()
     conn.close()

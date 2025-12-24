@@ -41,11 +41,49 @@ CREATE TABLE IF NOT EXISTS permessi (
     UNIQUE KEY unique_permesso (utente_id, menu_id)
 );
 
+-- Tabella servizi
+CREATE TABLE IF NOT EXISTS servizi (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nome VARCHAR(150) NOT NULL,
+    descrizione TEXT,
+    descrizione_breve VARCHAR(300),
+    foto VARCHAR(500),
+    icona VARCHAR(50) DEFAULT 'bi-gear',
+    prezzo DECIMAL(10,2) NULL,
+    durata VARCHAR(50) NULL,
+    attivo BOOLEAN DEFAULT TRUE,
+    in_evidenza BOOLEAN DEFAULT FALSE,
+    ordine INT DEFAULT 0,
+    data_creazione DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Tabella news
+CREATE TABLE IF NOT EXISTS news (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    titolo VARCHAR(255) NOT NULL,
+    slug VARCHAR(255) UNIQUE,
+    contenuto TEXT,
+    estratto VARCHAR(500),
+    immagine VARCHAR(500),
+    autore_id INT,
+    categoria VARCHAR(100),
+    tags VARCHAR(255),
+    pubblicato BOOLEAN DEFAULT FALSE,
+    in_evidenza BOOLEAN DEFAULT FALSE,
+    data_pubblicazione DATETIME NULL,
+    data_creazione DATETIME DEFAULT CURRENT_TIMESTAMP,
+    data_modifica DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    visualizzazioni INT DEFAULT 0,
+    FOREIGN KEY (autore_id) REFERENCES utenti(id) ON DELETE SET NULL
+);
+
 -- Inserimento voci menu di default
 INSERT INTO menu (nome, icona, url, ordine, attivo) VALUES
 ('Dashboard', 'bi-speedometer2', '/dashboard', 0, TRUE),
 ('Utenti', 'bi-people', '/admin/utenti', 1, TRUE),
-('Gestione Menu', 'bi-list-ul', '/admin/menu', 2, TRUE);
+('Gestione Menu', 'bi-list-ul', '/admin/menu', 2, TRUE),
+('Servizi', 'bi-briefcase', '/admin/servizi', 3, TRUE),
+('News', 'bi-newspaper', '/admin/news', 4, TRUE);
 
 -- NOTA: L'utente admin viene creato automaticamente da app.py con password: admin123
 -- Gli amministratori vedono tutte le voci di menu indipendentemente dai permessi
