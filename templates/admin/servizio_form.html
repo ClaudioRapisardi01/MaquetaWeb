@@ -1,0 +1,439 @@
+{% extends "base.html" %}
+
+{% block title %}{{ 'Modifica' if servizio else 'Nuovo' }} Servizio - Maqueta Web{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="page-header">
+    <div>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-2">
+                <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}" class="text-decoration-none">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('lista_servizi') }}" class="text-decoration-none">Servizi</a></li>
+                <li class="breadcrumb-item active">{{ 'Modifica' if servizio else 'Nuovo' }}</li>
+            </ol>
+        </nav>
+        <h1>
+            <i class="bi bi-{{ 'pencil-square' if servizio else 'plus-circle' }}"></i>
+            {{ 'Modifica Servizio' if servizio else 'Nuovo Servizio' }}
+        </h1>
+    </div>
+    <a href="{{ url_for('lista_servizi') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i>
+        Torna alla lista
+    </a>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <form method="POST" id="serviceForm" enctype="multipart/form-data">
+            <!-- Informazioni Base -->
+            <div class="card mb-4 slide-up">
+                <div class="card-header">
+                    <i class="bi bi-info-circle me-2"></i>
+                    Informazioni Base
+                </div>
+                <div class="card-body">
+                    <div class="row g-4">
+                        <div class="col-12">
+                            <label class="form-label">
+                                Nome Servizio <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" class="form-control" name="nome"
+                                value="{{ servizio.nome if servizio else '' }}"
+                                placeholder="Es. Consulenza Strategica" required>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Descrizione Breve</label>
+                            <input type="text" class="form-control" name="descrizione_breve"
+                                value="{{ servizio.descrizione_breve if servizio and servizio.descrizione_breve else '' }}"
+                                placeholder="Breve descrizione per anteprima (max 300 caratteri)"
+                                maxlength="300">
+                            <small class="text-muted">Questa descrizione viene mostrata nelle liste e anteprime</small>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Descrizione Completa</label>
+                            <textarea class="form-control" name="descrizione" rows="5"
+                                placeholder="Descrizione dettagliata del servizio...">{{ servizio.descrizione if servizio and servizio.descrizione else '' }}</textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Aspetto -->
+            <div class="card mb-4 slide-up stagger-1">
+                <div class="card-header">
+                    <i class="bi bi-palette me-2"></i>
+                    Aspetto
+                </div>
+                <div class="card-body">
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <label class="form-label">Icona</label>
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="{{ servizio.icona if servizio else 'bi-gear' }}" id="iconPreview"></i>
+                                </span>
+                                <input type="text" class="form-control" name="icona" id="iconInput"
+                                    value="{{ servizio.icona if servizio else 'bi-gear' }}"
+                                    placeholder="bi-gear">
+                            </div>
+                            <small class="text-muted">Usa le <a href="https://icons.getbootstrap.com/" target="_blank">Bootstrap Icons</a> (es. bi-gear, bi-laptop, bi-people)</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Immagine</label>
+                            {% if servizio and servizio.foto %}
+                            <div class="mb-2 p-2 border rounded bg-light">
+                                <div class="d-flex align-items-center">
+                                    <img src="{{ url_for('static', filename='uploads/' + servizio.foto) }}"
+                                         alt="Anteprima" class="rounded me-3"
+                                         style="width: 60px; height: 60px; object-fit: cover;">
+                                    <div class="flex-grow-1">
+                                        <small class="text-muted d-block">Immagine attuale</small>
+                                        <div class="form-check mt-1">
+                                            <input class="form-check-input" type="checkbox" name="rimuovi_foto" id="rimuovi_foto">
+                                            <label class="form-check-label small text-danger" for="rimuovi_foto">
+                                                Rimuovi immagine
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+                            <input type="file" class="form-control" name="foto" id="fotoInput"
+                                accept="image/png,image/jpeg,image/jpg,image/gif,image/webp">
+                            <small class="text-muted">Formati: PNG, JPG, GIF, WebP (max 16MB)</small>
+                        </div>
+                    </div>
+
+                    <!-- Anteprima immagine -->
+                    <div class="row mt-3" id="previewContainer" style="display: none;">
+                        <div class="col-12">
+                            <div class="p-3 border rounded bg-light">
+                                <label class="form-label small text-muted">Anteprima nuova immagine:</label>
+                                <img id="imagePreview" src="" alt="Anteprima"
+                                     class="img-fluid rounded" style="max-height: 200px;">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Prezzo e Durata -->
+            <div class="card mb-4 slide-up stagger-2">
+                <div class="card-header">
+                    <i class="bi bi-currency-euro me-2"></i>
+                    Prezzo e Durata
+                </div>
+                <div class="card-body">
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <label class="form-label">Prezzo</label>
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="bi bi-currency-euro"></i>
+                                </span>
+                                <input type="number" step="0.01" min="0" class="form-control" name="prezzo"
+                                    value="{{ '%.2f'|format(servizio.prezzo) if servizio and servizio.prezzo else '' }}"
+                                    placeholder="99.00">
+                            </div>
+                            <small class="text-muted">Lascia vuoto per "Su richiesta"</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Durata</label>
+                            <input type="text" class="form-control" name="durata"
+                                value="{{ servizio.durata if servizio and servizio.durata else '' }}"
+                                placeholder="Es. 1 ora, Giornaliero, Mensile">
+                            <small class="text-muted">Descrizione della durata o frequenza del servizio</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ordinamento e Stato -->
+            <div class="card mb-4 slide-up stagger-3">
+                <div class="card-header">
+                    <i class="bi bi-sliders me-2"></i>
+                    Ordinamento e Stato
+                </div>
+                <div class="card-body">
+                    <div class="row g-4">
+                        <div class="col-md-4">
+                            <label class="form-label">Ordine di Visualizzazione</label>
+                            <input type="number" class="form-control" name="ordine"
+                                value="{{ servizio.ordine if servizio else 0 }}"
+                                min="0">
+                            <small class="text-muted">Numeri piu bassi appaiono prima</small>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="p-3 rounded h-100" style="background: var(--gray-100);">
+                                <div class="form-check form-switch d-flex align-items-center">
+                                    <input class="form-check-input me-3" type="checkbox" name="attivo" id="attivo"
+                                        {{ 'checked' if not servizio or servizio.attivo else '' }}
+                                        style="width: 3.5rem; height: 1.75rem;">
+                                    <label class="form-check-label" for="attivo">
+                                        <strong class="d-block">Attivo</strong>
+                                        <small class="text-muted">Visibile pubblicamente</small>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="p-3 rounded h-100" style="background: var(--gray-100);">
+                                <div class="form-check form-switch d-flex align-items-center">
+                                    <input class="form-check-input me-3" type="checkbox" name="in_evidenza" id="in_evidenza"
+                                        {{ 'checked' if servizio and servizio.in_evidenza else '' }}
+                                        style="width: 3.5rem; height: 1.75rem;">
+                                    <label class="form-check-label" for="in_evidenza">
+                                        <strong class="d-block">In Evidenza</strong>
+                                        <small class="text-muted">Mostra in homepage</small>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pulsanti Azione -->
+            <div class="d-flex gap-3 mb-4">
+                <button type="submit" class="btn btn-primary btn-lg">
+                    <i class="bi bi-check-lg me-1"></i>
+                    {{ 'Salva Modifiche' if servizio else 'Crea Servizio' }}
+                </button>
+                <a href="{{ url_for('lista_servizi') }}" class="btn btn-secondary btn-lg">
+                    <i class="bi bi-x-lg me-1"></i>
+                    Annulla
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Sidebar Info -->
+    <div class="col-lg-4">
+        {% if servizio %}
+        <!-- Info Servizio -->
+        <div class="card mb-4 slide-up">
+            <div class="card-header">
+                <i class="bi bi-info-circle me-2"></i>
+                Informazioni Servizio
+            </div>
+            <div class="card-body">
+                <div class="text-center mb-4">
+                    {% if servizio.foto %}
+                    <img src="{{ url_for('static', filename='uploads/' + servizio.foto) }}"
+                         alt="{{ servizio.nome }}" class="rounded mb-3"
+                         style="width: 120px; height: 120px; object-fit: cover;">
+                    {% else %}
+                    <div class="rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3"
+                         style="width: 80px; height: 80px; background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);">
+                        <i class="{{ servizio.icona }} text-white" style="font-size: 2rem;"></i>
+                    </div>
+                    {% endif %}
+                    <h5 class="mb-1">{{ servizio.nome }}</h5>
+                    {% if servizio.prezzo %}
+                    <p class="text-success mb-0 fw-semibold">{{ "%.2f"|format(servizio.prezzo) }} &euro;</p>
+                    {% else %}
+                    <p class="text-muted mb-0">Su richiesta</p>
+                    {% endif %}
+                </div>
+
+                <div class="divider"></div>
+
+                <div class="d-flex justify-content-between py-2">
+                    <span class="text-muted">ID Servizio</span>
+                    <span class="fw-semibold">#{{ servizio.id }}</span>
+                </div>
+                {% if servizio.data_creazione %}
+                <div class="d-flex justify-content-between py-2">
+                    <span class="text-muted">Creato il</span>
+                    <span class="fw-semibold">{{ servizio.data_creazione.strftime('%d/%m/%Y') }}</span>
+                </div>
+                {% endif %}
+                <div class="d-flex justify-content-between py-2">
+                    <span class="text-muted">Stato</span>
+                    {% if servizio.attivo %}
+                    <span class="badge bg-success">Attivo</span>
+                    {% else %}
+                    <span class="badge bg-danger">Disattivato</span>
+                    {% endif %}
+                </div>
+                <div class="d-flex justify-content-between py-2">
+                    <span class="text-muted">In evidenza</span>
+                    {% if servizio.in_evidenza %}
+                    <span class="badge bg-warning">Si</span>
+                    {% else %}
+                    <span class="badge bg-secondary">No</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Azioni Rapide -->
+        <div class="card slide-up stagger-1">
+            <div class="card-header">
+                <i class="bi bi-lightning-charge me-2"></i>
+                Azioni Rapide
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal">
+                        <i class="bi bi-trash me-2"></i>Elimina Servizio
+                    </button>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <!-- Suggerimenti -->
+        <div class="card slide-up">
+            <div class="card-header">
+                <i class="bi bi-lightbulb me-2"></i>
+                Suggerimenti
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled mb-0">
+                    <li class="d-flex mb-3">
+                        <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
+                        <span>Scegli un nome chiaro e descrittivo</span>
+                    </li>
+                    <li class="d-flex mb-3">
+                        <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
+                        <span>La descrizione breve appare nelle anteprime</span>
+                    </li>
+                    <li class="d-flex mb-3">
+                        <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
+                        <span>Usa icone Bootstrap per un aspetto coerente</span>
+                    </li>
+                    <li class="d-flex">
+                        <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
+                        <span>I servizi "In evidenza" appaiono in homepage</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Icone Comuni -->
+        <div class="card mt-4 slide-up stagger-1">
+            <div class="card-header">
+                <i class="bi bi-grid me-2"></i>
+                Icone Comuni
+            </div>
+            <div class="card-body">
+                <div class="d-flex flex-wrap gap-2">
+                    <button type="button" class="btn btn-outline-secondary btn-icon icon-btn" data-icon="bi-gear" title="bi-gear">
+                        <i class="bi bi-gear"></i>
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-icon icon-btn" data-icon="bi-laptop" title="bi-laptop">
+                        <i class="bi bi-laptop"></i>
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-icon icon-btn" data-icon="bi-people" title="bi-people">
+                        <i class="bi bi-people"></i>
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-icon icon-btn" data-icon="bi-graph-up" title="bi-graph-up">
+                        <i class="bi bi-graph-up"></i>
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-icon icon-btn" data-icon="bi-shield-check" title="bi-shield-check">
+                        <i class="bi bi-shield-check"></i>
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-icon icon-btn" data-icon="bi-tools" title="bi-tools">
+                        <i class="bi bi-tools"></i>
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-icon icon-btn" data-icon="bi-headset" title="bi-headset">
+                        <i class="bi bi-headset"></i>
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-icon icon-btn" data-icon="bi-rocket" title="bi-rocket">
+                        <i class="bi bi-rocket"></i>
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-icon icon-btn" data-icon="bi-lightbulb" title="bi-lightbulb">
+                        <i class="bi bi-lightbulb"></i>
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-icon icon-btn" data-icon="bi-cloud" title="bi-cloud">
+                        <i class="bi bi-cloud"></i>
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-icon icon-btn" data-icon="bi-code-slash" title="bi-code-slash">
+                        <i class="bi bi-code-slash"></i>
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-icon icon-btn" data-icon="bi-briefcase" title="bi-briefcase">
+                        <i class="bi bi-briefcase"></i>
+                    </button>
+                </div>
+                <small class="text-muted d-block mt-2">Clicca su un'icona per selezionarla</small>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% if servizio %}
+<!-- Delete Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-0">
+                <h5 class="modal-title">
+                    <i class="bi bi-exclamation-triangle text-danger me-2"></i>
+                    Conferma Eliminazione
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-0">Sei sicuro di voler eliminare il servizio <strong>{{ servizio.nome }}</strong>?</p>
+                <p class="text-muted small mt-2 mb-0">Questa azione non puo essere annullata.</p>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                <form action="{{ url_for('elimina_servizio', id=servizio.id) }}" method="POST" class="d-inline">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash me-1"></i>Elimina
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Icon preview update
+    document.getElementById('iconInput').addEventListener('input', function() {
+        const iconPreview = document.getElementById('iconPreview');
+        iconPreview.className = this.value || 'bi-gear';
+    });
+
+    // Icon buttons
+    document.querySelectorAll('.icon-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const icon = this.getAttribute('data-icon');
+            document.getElementById('iconInput').value = icon;
+            document.getElementById('iconPreview').className = icon;
+        });
+    });
+
+    // Image preview
+    document.getElementById('fotoInput').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        const previewContainer = document.getElementById('previewContainer');
+        const imagePreview = document.getElementById('imagePreview');
+
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                imagePreview.src = e.target.result;
+                previewContainer.style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+        } else {
+            previewContainer.style.display = 'none';
+        }
+    });
+
+    // Form validation feedback
+    document.getElementById('serviceForm').addEventListener('submit', function(e) {
+        const btn = this.querySelector('button[type="submit"]');
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Salvataggio...';
+        btn.disabled = true;
+    });
+</script>
+{% endblock %}
