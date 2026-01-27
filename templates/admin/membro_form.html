@@ -1,0 +1,284 @@
+{% extends "base.html" %}
+
+{% block title %}{{ 'Modifica' if membro else 'Nuovo' }} Membro - Maqueta Web{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="page-header">
+    <div>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-2">
+                <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}" class="text-decoration-none">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('lista_artisti') }}" class="text-decoration-none">Artisti</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('modifica_artista', id=artista.id) }}" class="text-decoration-none">{{ artista.nome_display }}</a></li>
+                <li class="breadcrumb-item active">{{ 'Modifica' if membro else 'Nuovo' }} Membro</li>
+            </ol>
+        </nav>
+        <h1>
+            <i class="bi bi-{{ 'pencil-square' if membro else 'person-plus' }}"></i>
+            {{ 'Modifica Membro' if membro else 'Nuovo Membro' }}
+        </h1>
+    </div>
+    <a href="{{ url_for('modifica_artista', id=artista.id) }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i>
+        Torna all'artista
+    </a>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <form method="POST" id="membroForm" enctype="multipart/form-data">
+            <!-- Informazioni Base -->
+            <div class="card mb-4 slide-up">
+                <div class="card-header">
+                    <i class="bi bi-person me-2"></i>
+                    Informazioni Membro
+                </div>
+                <div class="card-body">
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <label class="form-label">
+                                Nome <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" class="form-control" name="nome"
+                                value="{{ membro.nome if membro else '' }}"
+                                placeholder="Nome" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Cognome</label>
+                            <input type="text" class="form-control" name="cognome"
+                                value="{{ membro.cognome if membro and membro.cognome else '' }}"
+                                placeholder="Cognome">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Nome d'Arte</label>
+                            <input type="text" class="form-control" name="nome_arte"
+                                value="{{ membro.nome_arte if membro and membro.nome_arte else '' }}"
+                                placeholder="Nickname o nome d'arte">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">
+                                Ruolo <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" class="form-control" name="ruolo"
+                                value="{{ membro.ruolo if membro else '' }}"
+                                placeholder="Es. Cantante, Chitarrista, Batterista" required>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Breve Biografia</label>
+                            <textarea class="form-control" name="bio_breve" rows="3"
+                                placeholder="Breve descrizione del membro...">{{ membro.bio_breve if membro and membro.bio_breve else '' }}</textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Foto -->
+            <div class="card mb-4 slide-up stagger-1">
+                <div class="card-header">
+                    <i class="bi bi-image me-2"></i>
+                    Foto
+                </div>
+                <div class="card-body">
+                    {% if membro and membro.foto %}
+                    <div class="mb-3 p-3 border rounded bg-light">
+                        <div class="d-flex align-items-center">
+                            <img src="{{ url_for('static', filename='uploads/' + membro.foto) }}"
+                                 alt="{{ membro.nome_completo }}" class="rounded-circle me-3"
+                                 style="width: 80px; height: 80px; object-fit: cover;">
+                            <div class="flex-grow-1">
+                                <small class="text-muted d-block">Foto attuale</small>
+                                <div class="form-check mt-2">
+                                    <input class="form-check-input" type="checkbox" name="rimuovi_foto" id="rimuovi_foto">
+                                    <label class="form-check-label text-danger" for="rimuovi_foto">
+                                        Rimuovi foto
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    <input type="file" class="form-control" name="foto"
+                        accept="image/png,image/jpeg,image/jpg,image/gif,image/webp">
+                    <small class="text-muted">Foto quadrata consigliata (300x300px)</small>
+                </div>
+            </div>
+
+            <!-- Date e Stato -->
+            <div class="card mb-4 slide-up stagger-2">
+                <div class="card-header">
+                    <i class="bi bi-calendar me-2"></i>
+                    Periodo e Stato
+                </div>
+                <div class="card-body">
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <label class="form-label">Data Ingresso</label>
+                            <input type="date" class="form-control" name="data_ingresso"
+                                value="{{ membro.data_ingresso.strftime('%Y-%m-%d') if membro and membro.data_ingresso else '' }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Data Uscita</label>
+                            <input type="date" class="form-control" name="data_uscita"
+                                value="{{ membro.data_uscita.strftime('%Y-%m-%d') if membro and membro.data_uscita else '' }}">
+                            <small class="text-muted">Compila solo se il membro ha lasciato la band</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Ordine di Visualizzazione</label>
+                            <input type="number" class="form-control" name="ordine"
+                                value="{{ membro.ordine if membro else 0 }}"
+                                min="0">
+                        </div>
+                        <div class="col-md-6">
+                            <div class="p-3 rounded h-100" style="background: var(--gray-100);">
+                                <div class="form-check form-switch d-flex align-items-center">
+                                    <input class="form-check-input me-3" type="checkbox" name="attivo" id="attivo"
+                                        {{ 'checked' if not membro or membro.attivo else '' }}
+                                        style="width: 3.5rem; height: 1.75rem;">
+                                    <label class="form-check-label" for="attivo">
+                                        <strong class="d-block">Membro Attivo</strong>
+                                        <small class="text-muted">Attualmente nella band</small>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pulsanti Azione -->
+            <div class="d-flex gap-3 mb-4">
+                <button type="submit" class="btn btn-primary btn-lg">
+                    <i class="bi bi-check-lg me-1"></i>
+                    {{ 'Salva Modifiche' if membro else 'Aggiungi Membro' }}
+                </button>
+                <a href="{{ url_for('modifica_artista', id=artista.id) }}" class="btn btn-secondary btn-lg">
+                    <i class="bi bi-x-lg me-1"></i>
+                    Annulla
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="col-lg-4">
+        <!-- Info Band -->
+        <div class="card mb-4 slide-up">
+            <div class="card-header">
+                <i class="bi bi-music-note-list me-2"></i>
+                Band
+            </div>
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    {% if artista.foto %}
+                    <img src="{{ url_for('static', filename='uploads/' + artista.foto) }}"
+                         alt="{{ artista.nome_display }}" class="rounded-circle me-3"
+                         style="width: 50px; height: 50px; object-fit: cover;">
+                    {% else %}
+                    <div class="rounded-circle d-flex align-items-center justify-content-center me-3"
+                         style="width: 50px; height: 50px; background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);">
+                        <i class="bi bi-people-fill text-white"></i>
+                    </div>
+                    {% endif %}
+                    <div>
+                        <h6 class="mb-0">{{ artista.nome_display }}</h6>
+                        {% if artista.genere %}
+                        <small class="text-muted">{{ artista.genere }}</small>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {% if membro %}
+        <!-- Info Membro -->
+        <div class="card mb-4 slide-up stagger-1">
+            <div class="card-header">
+                <i class="bi bi-person me-2"></i>
+                Info Membro
+            </div>
+            <div class="card-body">
+                <div class="text-center mb-3">
+                    {% if membro.foto %}
+                    <img src="{{ url_for('static', filename='uploads/' + membro.foto) }}"
+                         alt="{{ membro.nome_completo }}" class="rounded-circle mb-2"
+                         style="width: 80px; height: 80px; object-fit: cover;">
+                    {% else %}
+                    <div class="rounded-circle d-flex align-items-center justify-content-center mx-auto mb-2"
+                         style="width: 80px; height: 80px; background: var(--gray-200);">
+                        <i class="bi bi-person" style="font-size: 2rem;"></i>
+                    </div>
+                    {% endif %}
+                    <h6 class="mb-0">{{ membro.nome_display }}</h6>
+                    <small class="text-muted">{{ membro.ruolo }}</small>
+                </div>
+                <div class="divider"></div>
+                <div class="d-flex justify-content-between py-2">
+                    <span class="text-muted">Stato</span>
+                    {% if membro.attivo %}
+                    <span class="badge bg-success">Attivo</span>
+                    {% else %}
+                    <span class="badge bg-secondary">Ex membro</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Elimina -->
+        <div class="card slide-up stagger-2">
+            <div class="card-header">
+                <i class="bi bi-lightning-charge me-2"></i>
+                Azioni
+            </div>
+            <div class="card-body">
+                <form action="{{ url_for('elimina_membro', id=membro.id) }}" method="POST"
+                      onsubmit="return confirm('Sei sicuro di voler eliminare questo membro?');">
+                    <button type="submit" class="btn btn-outline-danger w-100">
+                        <i class="bi bi-trash me-2"></i>Elimina Membro
+                    </button>
+                </form>
+            </div>
+        </div>
+        {% else %}
+        <!-- Ruoli Comuni -->
+        <div class="card slide-up stagger-1">
+            <div class="card-header">
+                <i class="bi bi-list-check me-2"></i>
+                Ruoli Comuni
+            </div>
+            <div class="card-body">
+                <div class="d-flex flex-wrap gap-2">
+                    <button type="button" class="btn btn-sm btn-outline-secondary role-btn" data-role="Cantante">Cantante</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary role-btn" data-role="Chitarrista">Chitarrista</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary role-btn" data-role="Bassista">Bassista</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary role-btn" data-role="Batterista">Batterista</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary role-btn" data-role="Tastierista">Tastierista</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary role-btn" data-role="DJ">DJ</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary role-btn" data-role="Produttore">Produttore</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary role-btn" data-role="Rapper">Rapper</button>
+                </div>
+                <small class="text-muted d-block mt-2">Clicca per inserire</small>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Role buttons
+    document.querySelectorAll('.role-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.querySelector('input[name="ruolo"]').value = this.getAttribute('data-role');
+        });
+    });
+
+    // Form validation feedback
+    document.getElementById('membroForm').addEventListener('submit', function(e) {
+        const btn = this.querySelector('button[type="submit"]');
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Salvataggio...';
+        btn.disabled = true;
+    });
+</script>
+{% endblock %}

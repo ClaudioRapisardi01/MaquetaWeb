@@ -1,0 +1,540 @@
+{% extends "base.html" %}
+
+{% block title %}{{ 'Modifica' if artista else 'Nuovo' }} Artista - Maqueta Web{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="page-header">
+    <div>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-2">
+                <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}" class="text-decoration-none">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('lista_artisti') }}" class="text-decoration-none">Artisti</a></li>
+                <li class="breadcrumb-item active">{{ 'Modifica' if artista else 'Nuovo' }}</li>
+            </ol>
+        </nav>
+        <h1>
+            <i class="bi bi-{{ 'pencil-square' if artista else 'plus-circle' }}"></i>
+            {{ 'Modifica Artista' if artista else 'Nuovo Artista' }}
+        </h1>
+    </div>
+    <a href="{{ url_for('lista_artisti') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i>
+        Torna alla lista
+    </a>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <form method="POST" id="artistForm" enctype="multipart/form-data">
+            <!-- Informazioni Base -->
+            <div class="card mb-4 slide-up">
+                <div class="card-header">
+                    <i class="bi bi-info-circle me-2"></i>
+                    Informazioni Base
+                </div>
+                <div class="card-body">
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <label class="form-label">
+                                Nome <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" class="form-control" name="nome"
+                                value="{{ artista.nome if artista else '' }}"
+                                placeholder="Nome reale o della band" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Nome d'Arte</label>
+                            <input type="text" class="form-control" name="nome_arte"
+                                value="{{ artista.nome_arte if artista and artista.nome_arte else '' }}"
+                                placeholder="Nome artistico (se diverso)">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Slug URL</label>
+                            <input type="text" class="form-control" name="slug"
+                                value="{{ artista.slug if artista else '' }}"
+                                placeholder="Generato automaticamente">
+                            <small class="text-muted">Lascia vuoto per generare automaticamente</small>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="p-3 rounded h-100" style="background: var(--gray-100);">
+                                <div class="form-check form-switch d-flex align-items-center">
+                                    <input class="form-check-input me-3" type="checkbox" name="is_band" id="is_band"
+                                        {{ 'checked' if artista and artista.is_band else '' }}
+                                        style="width: 3.5rem; height: 1.75rem;">
+                                    <label class="form-check-label" for="is_band">
+                                        <strong class="d-block">E' una Band</strong>
+                                        <small class="text-muted">Abilita gestione membri</small>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Biografia</label>
+                            <textarea class="form-control" name="bio" rows="5"
+                                placeholder="Biografia dell'artista o della band...">{{ artista.bio if artista and artista.bio else '' }}</textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Immagini -->
+            <div class="card mb-4 slide-up stagger-1">
+                <div class="card-header">
+                    <i class="bi bi-image me-2"></i>
+                    Immagini
+                </div>
+                <div class="card-body">
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <label class="form-label">Foto Profilo</label>
+                            {% if artista and artista.foto %}
+                            <div class="mb-2 p-2 border rounded bg-light">
+                                <div class="d-flex align-items-center">
+                                    <img src="{{ url_for('static', filename='uploads/' + artista.foto) }}"
+                                         alt="Foto" class="rounded-circle me-3"
+                                         style="width: 60px; height: 60px; object-fit: cover;">
+                                    <div class="flex-grow-1">
+                                        <small class="text-muted d-block">Foto attuale</small>
+                                        <div class="form-check mt-1">
+                                            <input class="form-check-input" type="checkbox" name="rimuovi_foto" id="rimuovi_foto">
+                                            <label class="form-check-label small text-danger" for="rimuovi_foto">
+                                                Rimuovi foto
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+                            <input type="file" class="form-control" name="foto"
+                                accept="image/png,image/jpeg,image/jpg,image/gif,image/webp">
+                            <small class="text-muted">Foto quadrata consigliata (400x400px)</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Foto Copertina</label>
+                            {% if artista and artista.foto_copertina %}
+                            <div class="mb-2 p-2 border rounded bg-light">
+                                <div class="d-flex align-items-center">
+                                    <img src="{{ url_for('static', filename='uploads/' + artista.foto_copertina) }}"
+                                         alt="Copertina" class="rounded me-3"
+                                         style="width: 80px; height: 45px; object-fit: cover;">
+                                    <div class="flex-grow-1">
+                                        <small class="text-muted d-block">Copertina attuale</small>
+                                        <div class="form-check mt-1">
+                                            <input class="form-check-input" type="checkbox" name="rimuovi_foto_copertina" id="rimuovi_foto_copertina">
+                                            <label class="form-check-label small text-danger" for="rimuovi_foto_copertina">
+                                                Rimuovi copertina
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+                            <input type="file" class="form-control" name="foto_copertina"
+                                accept="image/png,image/jpeg,image/jpg,image/gif,image/webp">
+                            <small class="text-muted">Banner orizzontale (1200x400px)</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Metadati -->
+            <div class="card mb-4 slide-up stagger-2">
+                <div class="card-header">
+                    <i class="bi bi-tags me-2"></i>
+                    Dettagli
+                </div>
+                <div class="card-body">
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <label class="form-label">Genere Musicale</label>
+                            <input type="text" class="form-control" name="genere"
+                                value="{{ artista.genere if artista and artista.genere else '' }}"
+                                placeholder="Es. Pop, Rock, Hip-Hop">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Anno Fondazione</label>
+                            <input type="number" class="form-control" name="anno_fondazione"
+                                value="{{ artista.anno_fondazione if artista and artista.anno_fondazione else '' }}"
+                                placeholder="Es. 2015" min="1900" max="2099">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Citta</label>
+                            <input type="text" class="form-control" name="citta"
+                                value="{{ artista.citta if artista and artista.citta else '' }}"
+                                placeholder="Es. Milano">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Paese</label>
+                            <input type="text" class="form-control" name="paese"
+                                value="{{ artista.paese if artista and artista.paese else '' }}"
+                                placeholder="Es. Italia">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Social Links -->
+            <div class="card mb-4 slide-up stagger-3">
+                <div class="card-header">
+                    <i class="bi bi-share me-2"></i>
+                    Social e Link
+                </div>
+                <div class="card-body">
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <label class="form-label"><i class="bi bi-spotify text-success me-1"></i> Spotify</label>
+                            <input type="url" class="form-control" name="spotify"
+                                value="{{ artista.spotify if artista and artista.spotify else '' }}"
+                                placeholder="https://open.spotify.com/artist/...">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label"><i class="bi bi-apple text-dark me-1"></i> Apple Music</label>
+                            <input type="url" class="form-control" name="apple_music"
+                                value="{{ artista.apple_music if artista and artista.apple_music else '' }}"
+                                placeholder="https://music.apple.com/...">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label"><i class="bi bi-youtube text-danger me-1"></i> YouTube</label>
+                            <input type="url" class="form-control" name="youtube"
+                                value="{{ artista.youtube if artista and artista.youtube else '' }}"
+                                placeholder="https://youtube.com/...">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label"><i class="bi bi-instagram text-pink me-1"></i> Instagram</label>
+                            <input type="url" class="form-control" name="instagram"
+                                value="{{ artista.instagram if artista and artista.instagram else '' }}"
+                                placeholder="https://instagram.com/...">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label"><i class="bi bi-facebook text-primary me-1"></i> Facebook</label>
+                            <input type="url" class="form-control" name="facebook"
+                                value="{{ artista.facebook if artista and artista.facebook else '' }}"
+                                placeholder="https://facebook.com/...">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label"><i class="bi bi-twitter-x text-dark me-1"></i> X (Twitter)</label>
+                            <input type="url" class="form-control" name="twitter"
+                                value="{{ artista.twitter if artista and artista.twitter else '' }}"
+                                placeholder="https://x.com/...">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label"><i class="bi bi-globe me-1"></i> Sito Web</label>
+                            <input type="url" class="form-control" name="website"
+                                value="{{ artista.website if artista and artista.website else '' }}"
+                                placeholder="https://www.esempio.com">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stato -->
+            <div class="card mb-4 slide-up stagger-4">
+                <div class="card-header">
+                    <i class="bi bi-sliders me-2"></i>
+                    Ordinamento e Stato
+                </div>
+                <div class="card-body">
+                    <div class="row g-4">
+                        <div class="col-md-4">
+                            <label class="form-label">Ordine di Visualizzazione</label>
+                            <input type="number" class="form-control" name="ordine"
+                                value="{{ artista.ordine if artista else 0 }}"
+                                min="0">
+                            <small class="text-muted">Numeri piu bassi appaiono prima</small>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="p-3 rounded h-100" style="background: var(--gray-100);">
+                                <div class="form-check form-switch d-flex align-items-center">
+                                    <input class="form-check-input me-3" type="checkbox" name="attivo" id="attivo"
+                                        {{ 'checked' if not artista or artista.attivo else '' }}
+                                        style="width: 3.5rem; height: 1.75rem;">
+                                    <label class="form-check-label" for="attivo">
+                                        <strong class="d-block">Attivo</strong>
+                                        <small class="text-muted">Visibile pubblicamente</small>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="p-3 rounded h-100" style="background: var(--gray-100);">
+                                <div class="form-check form-switch d-flex align-items-center">
+                                    <input class="form-check-input me-3" type="checkbox" name="in_evidenza" id="in_evidenza"
+                                        {{ 'checked' if artista and artista.in_evidenza else '' }}
+                                        style="width: 3.5rem; height: 1.75rem;">
+                                    <label class="form-check-label" for="in_evidenza">
+                                        <strong class="d-block">In Evidenza</strong>
+                                        <small class="text-muted">Mostra in homepage</small>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pulsanti Azione -->
+            <div class="d-flex gap-3 mb-4">
+                <button type="submit" class="btn btn-primary btn-lg">
+                    <i class="bi bi-check-lg me-1"></i>
+                    {{ 'Salva Modifiche' if artista else 'Crea Artista' }}
+                </button>
+                <a href="{{ url_for('lista_artisti') }}" class="btn btn-secondary btn-lg">
+                    <i class="bi bi-x-lg me-1"></i>
+                    Annulla
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="col-lg-4">
+        {% if artista %}
+        <!-- Info Artista -->
+        <div class="card mb-4 slide-up">
+            <div class="card-header">
+                <i class="bi bi-info-circle me-2"></i>
+                Informazioni
+            </div>
+            <div class="card-body">
+                <div class="text-center mb-4">
+                    {% if artista.foto %}
+                    <img src="{{ url_for('static', filename='uploads/' + artista.foto) }}"
+                         alt="{{ artista.nome_display }}" class="rounded-circle mb-3"
+                         style="width: 100px; height: 100px; object-fit: cover;">
+                    {% else %}
+                    <div class="rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3"
+                         style="width: 80px; height: 80px; background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);">
+                        <i class="bi bi-{{ 'people-fill' if artista.is_band else 'person-fill' }} text-white" style="font-size: 2rem;"></i>
+                    </div>
+                    {% endif %}
+                    <h5 class="mb-1">{{ artista.nome_display }}</h5>
+                    <p class="text-muted mb-0">{{ artista.tipo_display }}</p>
+                </div>
+
+                <div class="divider"></div>
+
+                <div class="d-flex justify-content-between py-2">
+                    <span class="text-muted">ID</span>
+                    <span class="fw-semibold">#{{ artista.id }}</span>
+                </div>
+                {% if artista.genere %}
+                <div class="d-flex justify-content-between py-2">
+                    <span class="text-muted">Genere</span>
+                    <span class="badge bg-secondary">{{ artista.genere }}</span>
+                </div>
+                {% endif %}
+                <div class="d-flex justify-content-between py-2">
+                    <span class="text-muted">Dischi</span>
+                    <span class="badge bg-primary">{{ dischi|length }}</span>
+                </div>
+                <div class="d-flex justify-content-between py-2">
+                    <span class="text-muted">Eventi</span>
+                    <span class="badge bg-info">{{ eventi|length }}</span>
+                </div>
+                {% if artista.is_band %}
+                <div class="d-flex justify-content-between py-2">
+                    <span class="text-muted">Membri</span>
+                    <span class="badge bg-purple">{{ membri|length }}</span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Membri Band -->
+        {% if artista.is_band %}
+        <div class="card mb-4 slide-up stagger-1">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-people me-2"></i>Membri della Band</span>
+                <a href="{{ url_for('nuovo_membro', artista_id=artista.id) }}" class="btn btn-sm btn-primary">
+                    <i class="bi bi-plus"></i>
+                </a>
+            </div>
+            <div class="card-body p-0">
+                {% if membri %}
+                <ul class="list-group list-group-flush">
+                    {% for membro in membri %}
+                    <li class="list-group-item d-flex align-items-center">
+                        {% if membro.foto %}
+                        <img src="{{ url_for('static', filename='uploads/' + membro.foto) }}"
+                             alt="{{ membro.nome_completo }}" class="rounded-circle me-2"
+                             style="width: 35px; height: 35px; object-fit: cover;">
+                        {% else %}
+                        <div class="rounded-circle d-flex align-items-center justify-content-center me-2"
+                             style="width: 35px; height: 35px; background: var(--gray-200);">
+                            <i class="bi bi-person text-muted"></i>
+                        </div>
+                        {% endif %}
+                        <div class="flex-grow-1">
+                            <div class="fw-semibold small">{{ membro.nome_display }}</div>
+                            <div class="text-muted" style="font-size: 0.75rem;">{{ membro.ruolo }}</div>
+                        </div>
+                        {% if not membro.attivo %}
+                        <span class="badge bg-secondary me-2">Ex</span>
+                        {% endif %}
+                        <div class="btn-group btn-group-sm">
+                            <a href="{{ url_for('modifica_membro', id=membro.id) }}" class="btn btn-outline-secondary btn-icon" style="padding: 0.15rem 0.4rem;">
+                                <i class="bi bi-pencil" style="font-size: 0.7rem;"></i>
+                            </a>
+                        </div>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <div class="text-center py-4 text-muted">
+                    <i class="bi bi-people d-block mb-2" style="font-size: 2rem;"></i>
+                    <small>Nessun membro aggiunto</small>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Discografia Recente -->
+        <div class="card mb-4 slide-up stagger-2">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-disc me-2"></i>Discografia</span>
+                <a href="{{ url_for('nuovo_disco') }}" class="btn btn-sm btn-primary">
+                    <i class="bi bi-plus"></i>
+                </a>
+            </div>
+            <div class="card-body p-0">
+                {% if dischi %}
+                <ul class="list-group list-group-flush">
+                    {% for disco in dischi[:5] %}
+                    <li class="list-group-item d-flex align-items-center">
+                        {% if disco.copertina %}
+                        <img src="{{ url_for('static', filename='uploads/' + disco.copertina) }}"
+                             alt="{{ disco.titolo }}" class="rounded me-2"
+                             style="width: 40px; height: 40px; object-fit: cover;">
+                        {% else %}
+                        <div class="rounded d-flex align-items-center justify-content-center me-2"
+                             style="width: 40px; height: 40px; background: var(--gray-200);">
+                            <i class="bi bi-disc text-muted"></i>
+                        </div>
+                        {% endif %}
+                        <div class="flex-grow-1">
+                            <div class="fw-semibold small">{{ disco.titolo }}</div>
+                            <div class="text-muted" style="font-size: 0.75rem;">{{ disco.tipo_display }} - {{ disco.anno_uscita or 'N/D' }}</div>
+                        </div>
+                        <a href="{{ url_for('modifica_disco', id=disco.id) }}" class="btn btn-sm btn-outline-secondary btn-icon" style="padding: 0.15rem 0.4rem;">
+                            <i class="bi bi-pencil" style="font-size: 0.7rem;"></i>
+                        </a>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% if dischi|length > 5 %}
+                <div class="text-center py-2 border-top">
+                    <a href="{{ url_for('lista_dischi') }}?artista={{ artista.id }}" class="small text-decoration-none">
+                        Vedi tutti ({{ dischi|length }})
+                    </a>
+                </div>
+                {% endif %}
+                {% else %}
+                <div class="text-center py-4 text-muted">
+                    <i class="bi bi-disc d-block mb-2" style="font-size: 2rem;"></i>
+                    <small>Nessun disco</small>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Azioni Rapide -->
+        <div class="card slide-up stagger-3">
+            <div class="card-header">
+                <i class="bi bi-lightning-charge me-2"></i>
+                Azioni Rapide
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('nuovo_disco') }}" class="btn btn-outline-primary">
+                        <i class="bi bi-disc me-2"></i>Aggiungi Disco
+                    </a>
+                    <a href="{{ url_for('nuovo_evento') }}" class="btn btn-outline-info">
+                        <i class="bi bi-calendar-event me-2"></i>Aggiungi Evento
+                    </a>
+                    <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal">
+                        <i class="bi bi-trash me-2"></i>Elimina Artista
+                    </button>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <!-- Suggerimenti -->
+        <div class="card slide-up">
+            <div class="card-header">
+                <i class="bi bi-lightbulb me-2"></i>
+                Suggerimenti
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled mb-0">
+                    <li class="d-flex mb-3">
+                        <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
+                        <span>Usa il nome d'arte se diverso dal nome reale</span>
+                    </li>
+                    <li class="d-flex mb-3">
+                        <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
+                        <span>Abilita "E' una Band" per gestire i membri</span>
+                    </li>
+                    <li class="d-flex mb-3">
+                        <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
+                        <span>Aggiungi i link ai profili streaming</span>
+                    </li>
+                    <li class="d-flex">
+                        <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
+                        <span>La foto profilo quadrata funziona meglio</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% if artista %}
+<!-- Delete Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-0">
+                <h5 class="modal-title">
+                    <i class="bi bi-exclamation-triangle text-danger me-2"></i>
+                    Conferma Eliminazione
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-0">Sei sicuro di voler eliminare l'artista <strong>{{ artista.nome_display }}</strong>?</p>
+                <p class="text-danger small mt-2 mb-0">
+                    <i class="bi bi-exclamation-circle me-1"></i>
+                    Verranno eliminati anche tutti i dischi, brani, eventi e membri associati.
+                </p>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                <form action="{{ url_for('elimina_artista', id=artista.id) }}" method="POST" class="d-inline">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash me-1"></i>Elimina
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<style>
+    .bg-purple { background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%) !important; }
+    .text-pink { color: #e91e63 !important; }
+</style>
+<script>
+    // Form validation feedback
+    document.getElementById('artistForm').addEventListener('submit', function(e) {
+        const btn = this.querySelector('button[type="submit"]');
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Salvataggio...';
+        btn.disabled = true;
+    });
+</script>
+{% endblock %}

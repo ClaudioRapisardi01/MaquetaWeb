@@ -1,0 +1,452 @@
+{% extends "base.html" %}
+
+{% block title %}{{ 'Modifica' if brano else 'Nuovo' }} Brano - Maqueta Web{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="page-header">
+    <div>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-2">
+                <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}" class="text-decoration-none">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('lista_brani') }}" class="text-decoration-none">Brani</a></li>
+                <li class="breadcrumb-item active">{{ 'Modifica' if brano else 'Nuovo' }}</li>
+            </ol>
+        </nav>
+        <h1>
+            <i class="bi bi-{{ 'pencil-square' if brano else 'plus-circle' }}"></i>
+            {{ 'Modifica Brano' if brano else 'Nuovo Brano' }}
+        </h1>
+    </div>
+    <a href="{{ url_for('lista_brani') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i>
+        Torna alla lista
+    </a>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <form method="POST" id="branoForm">
+            <!-- Informazioni Base -->
+            <div class="card mb-4 slide-up">
+                <div class="card-header">
+                    <i class="bi bi-info-circle me-2"></i>
+                    Informazioni Base
+                </div>
+                <div class="card-body">
+                    <div class="row g-4">
+                        <div class="col-md-8">
+                            <label class="form-label">
+                                Titolo <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" class="form-control" name="titolo"
+                                value="{{ brano.titolo if brano else '' }}"
+                                placeholder="Titolo del brano" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Durata</label>
+                            <input type="text" class="form-control" name="durata"
+                                value="{{ brano.durata if brano and brano.durata else '' }}"
+                                placeholder="Es. 3:45">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">
+                                Artista <span class="text-danger">*</span>
+                            </label>
+                            <select class="form-select" name="artista_id" id="artistaSelect" required>
+                                <option value="">Seleziona artista...</option>
+                                {% for artista in artisti %}
+                                <option value="{{ artista.id }}" {{ 'selected' if brano and brano.artista_id == artista.id else '' }}>
+                                    {{ artista.nome_display }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Disco</label>
+                            <select class="form-select" name="disco_id" id="discoSelect">
+                                <option value="">Nessun disco (singolo)</option>
+                                {% for disco in dischi %}
+                                <option value="{{ disco.id }}" data-artista="{{ disco.artista_id }}" {{ 'selected' if brano and brano.disco_id == disco.id else '' }}>
+                                    {{ disco.titolo }} ({{ disco.artista_nome }})
+                                </option>
+                                {% endfor %}
+                            </select>
+                            <small class="text-muted">Lascia vuoto se e un singolo standalone</small>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">N. Traccia</label>
+                            <input type="number" class="form-control" name="numero_traccia"
+                                value="{{ brano.numero_traccia if brano and brano.numero_traccia else '' }}"
+                                placeholder="1" min="1">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Anno</label>
+                            <input type="number" class="form-control" name="anno"
+                                value="{{ brano.anno if brano and brano.anno else '' }}"
+                                placeholder="2024" min="1900" max="2099">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Data Uscita</label>
+                            <input type="date" class="form-control" name="data_uscita"
+                                value="{{ brano.data_uscita.strftime('%Y-%m-%d') if brano and brano.data_uscita else '' }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Slug URL</label>
+                            <input type="text" class="form-control" name="slug"
+                                value="{{ brano.slug if brano else '' }}"
+                                placeholder="Generato automaticamente">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Genere</label>
+                            <input type="text" class="form-control" name="genere"
+                                value="{{ brano.genere if brano and brano.genere else '' }}"
+                                placeholder="Es. Pop, Rock">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Credits -->
+            <div class="card mb-4 slide-up stagger-1">
+                <div class="card-header">
+                    <i class="bi bi-people me-2"></i>
+                    Credits
+                </div>
+                <div class="card-body">
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <label class="form-label">Featuring</label>
+                            <input type="text" class="form-control" name="featuring"
+                                value="{{ brano.featuring if brano and brano.featuring else '' }}"
+                                placeholder="Es. Artista X, Artista Y">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Produttore</label>
+                            <input type="text" class="form-control" name="produttore"
+                                value="{{ brano.produttore if brano and brano.produttore else '' }}"
+                                placeholder="Nome produttore">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Autori</label>
+                            <input type="text" class="form-control" name="autori"
+                                value="{{ brano.autori if brano and brano.autori else '' }}"
+                                placeholder="Autori del testo e della musica">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">ISRC</label>
+                            <input type="text" class="form-control" name="isrc"
+                                value="{{ brano.isrc if brano and brano.isrc else '' }}"
+                                placeholder="Codice ISRC">
+                            <small class="text-muted">International Standard Recording Code</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Link Streaming -->
+            <div class="card mb-4 slide-up stagger-2">
+                <div class="card-header">
+                    <i class="bi bi-headphones me-2"></i>
+                    Link Streaming
+                </div>
+                <div class="card-body">
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <label class="form-label"><i class="bi bi-spotify text-success me-1"></i> Spotify</label>
+                            <input type="url" class="form-control" name="link_spotify"
+                                value="{{ brano.link_spotify if brano and brano.link_spotify else '' }}"
+                                placeholder="https://open.spotify.com/track/...">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label"><i class="bi bi-apple text-dark me-1"></i> Apple Music</label>
+                            <input type="url" class="form-control" name="link_apple_music"
+                                value="{{ brano.link_apple_music if brano and brano.link_apple_music else '' }}"
+                                placeholder="https://music.apple.com/...">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label"><i class="bi bi-youtube text-danger me-1"></i> YouTube</label>
+                            <input type="url" class="form-control" name="link_youtube"
+                                value="{{ brano.link_youtube if brano and brano.link_youtube else '' }}"
+                                placeholder="https://youtube.com/watch?v=...">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">YouTube Music</label>
+                            <input type="url" class="form-control" name="link_youtube_music"
+                                value="{{ brano.link_youtube_music if brano and brano.link_youtube_music else '' }}"
+                                placeholder="https://music.youtube.com/...">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label"><i class="bi bi-soundwave me-1"></i> SoundCloud</label>
+                            <input type="url" class="form-control" name="link_soundcloud"
+                                value="{{ brano.link_soundcloud if brano and brano.link_soundcloud else '' }}"
+                                placeholder="https://soundcloud.com/...">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Altro Link</label>
+                            <input type="url" class="form-control" name="link_altro"
+                                value="{{ brano.link_altro if brano and brano.link_altro else '' }}"
+                                placeholder="Altro link streaming">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label"><i class="bi bi-play-btn me-1"></i> Video Ufficiale</label>
+                            <input type="url" class="form-control" name="video_ufficiale"
+                                value="{{ brano.video_ufficiale if brano and brano.video_ufficiale else '' }}"
+                                placeholder="Link al video musicale ufficiale">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Testo -->
+            <div class="card mb-4 slide-up stagger-3">
+                <div class="card-header">
+                    <i class="bi bi-file-earmark-text me-2"></i>
+                    Testo (Lyrics)
+                </div>
+                <div class="card-body">
+                    <textarea class="form-control" name="testo" rows="10"
+                        placeholder="Inserisci il testo del brano...">{{ brano.testo if brano and brano.testo else '' }}</textarea>
+                </div>
+            </div>
+
+            <!-- Stato -->
+            <div class="card mb-4 slide-up stagger-4">
+                <div class="card-header">
+                    <i class="bi bi-sliders me-2"></i>
+                    Stato
+                </div>
+                <div class="card-body">
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <div class="p-3 rounded h-100" style="background: var(--gray-100);">
+                                <div class="form-check form-switch d-flex align-items-center">
+                                    <input class="form-check-input me-3" type="checkbox" name="pubblicato" id="pubblicato"
+                                        {{ 'checked' if brano and brano.pubblicato else '' }}
+                                        style="width: 3.5rem; height: 1.75rem;">
+                                    <label class="form-check-label" for="pubblicato">
+                                        <strong class="d-block">Pubblicato</strong>
+                                        <small class="text-muted">Visibile pubblicamente</small>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="p-3 rounded h-100" style="background: var(--gray-100);">
+                                <div class="form-check form-switch d-flex align-items-center">
+                                    <input class="form-check-input me-3" type="checkbox" name="is_singolo" id="is_singolo"
+                                        {{ 'checked' if brano and brano.is_singolo else '' }}
+                                        style="width: 3.5rem; height: 1.75rem;">
+                                    <label class="form-check-label" for="is_singolo">
+                                        <strong class="d-block">E' un Singolo</strong>
+                                        <small class="text-muted">Pubblicato come singolo</small>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pulsanti Azione -->
+            <div class="d-flex gap-3 mb-4">
+                <button type="submit" class="btn btn-primary btn-lg">
+                    <i class="bi bi-check-lg me-1"></i>
+                    {{ 'Salva Modifiche' if brano else 'Crea Brano' }}
+                </button>
+                <a href="{{ url_for('lista_brani') }}" class="btn btn-secondary btn-lg">
+                    <i class="bi bi-x-lg me-1"></i>
+                    Annulla
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="col-lg-4">
+        {% if brano %}
+        <!-- Info Brano -->
+        <div class="card mb-4 slide-up">
+            <div class="card-header">
+                <i class="bi bi-music-note me-2"></i>
+                Info Brano
+            </div>
+            <div class="card-body">
+                <div class="text-center mb-3">
+                    <div class="rounded d-flex align-items-center justify-content-center mx-auto mb-2"
+                         style="width: 80px; height: 80px; background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);">
+                        <i class="bi bi-music-note-beamed text-white" style="font-size: 2rem;"></i>
+                    </div>
+                    <h6 class="mb-1">{{ brano.titolo_completo }}</h6>
+                    {% if brano.durata %}
+                    <small class="text-muted"><i class="bi bi-clock me-1"></i>{{ brano.durata }}</small>
+                    {% endif %}
+                </div>
+                <div class="divider"></div>
+                <div class="d-flex justify-content-between py-2">
+                    <span class="text-muted">ID</span>
+                    <span class="fw-semibold">#{{ brano.id }}</span>
+                </div>
+                <div class="d-flex justify-content-between py-2">
+                    <span class="text-muted">Stato</span>
+                    {% if brano.pubblicato %}
+                    <span class="badge bg-success">Pubblicato</span>
+                    {% else %}
+                    <span class="badge bg-warning">Bozza</span>
+                    {% endif %}
+                </div>
+                {% if brano.is_singolo %}
+                <div class="d-flex justify-content-between py-2">
+                    <span class="text-muted">Tipo</span>
+                    <span class="badge bg-purple">Singolo</span>
+                </div>
+                {% endif %}
+                {% if brano.testo %}
+                <div class="d-flex justify-content-between py-2">
+                    <span class="text-muted">Testo</span>
+                    <span class="badge bg-info">Presente</span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Link Rapidi -->
+        {% if brano.link_spotify or brano.link_apple_music or brano.link_youtube %}
+        <div class="card mb-4 slide-up stagger-1">
+            <div class="card-header">
+                <i class="bi bi-link-45deg me-2"></i>
+                Ascolta Su
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    {% if brano.link_spotify %}
+                    <a href="{{ brano.link_spotify }}" target="_blank" class="btn btn-outline-success btn-sm">
+                        <i class="bi bi-spotify me-2"></i>Spotify
+                    </a>
+                    {% endif %}
+                    {% if brano.link_apple_music %}
+                    <a href="{{ brano.link_apple_music }}" target="_blank" class="btn btn-outline-dark btn-sm">
+                        <i class="bi bi-apple me-2"></i>Apple Music
+                    </a>
+                    {% endif %}
+                    {% if brano.link_youtube %}
+                    <a href="{{ brano.link_youtube }}" target="_blank" class="btn btn-outline-danger btn-sm">
+                        <i class="bi bi-youtube me-2"></i>YouTube
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Elimina -->
+        <div class="card slide-up stagger-2">
+            <div class="card-header">
+                <i class="bi bi-lightning-charge me-2"></i>
+                Azioni
+            </div>
+            <div class="card-body">
+                <button type="button" class="btn btn-outline-danger w-100" data-bs-toggle="modal" data-bs-target="#deleteModal">
+                    <i class="bi bi-trash me-2"></i>Elimina Brano
+                </button>
+            </div>
+        </div>
+        {% else %}
+        <!-- Suggerimenti -->
+        <div class="card slide-up">
+            <div class="card-header">
+                <i class="bi bi-lightbulb me-2"></i>
+                Suggerimenti
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled mb-0">
+                    <li class="d-flex mb-3">
+                        <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
+                        <span>Seleziona prima l'artista, poi il disco</span>
+                    </li>
+                    <li class="d-flex mb-3">
+                        <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
+                        <span>Aggiungi i link streaming per una migliore esperienza</span>
+                    </li>
+                    <li class="d-flex mb-3">
+                        <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
+                        <span>Il testo aiuta nella ricerca e nel SEO</span>
+                    </li>
+                    <li class="d-flex">
+                        <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
+                        <span>Marca come "Singolo" se pubblicato singolarmente</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% if brano %}
+<!-- Delete Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-0">
+                <h5 class="modal-title">
+                    <i class="bi bi-exclamation-triangle text-danger me-2"></i>
+                    Conferma Eliminazione
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-0">Sei sicuro di voler eliminare il brano <strong>{{ brano.titolo }}</strong>?</p>
+                <p class="text-muted small mt-2 mb-0">Questa azione non puo essere annullata.</p>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                <form action="{{ url_for('elimina_brano', id=brano.id) }}" method="POST" class="d-inline">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash me-1"></i>Elimina
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<style>
+    .bg-purple { background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%) !important; }
+</style>
+<script>
+    // Form validation feedback
+    document.getElementById('branoForm').addEventListener('submit', function(e) {
+        const btn = this.querySelector('button[type="submit"]');
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Salvataggio...';
+        btn.disabled = true;
+    });
+
+    // Filter dischi by artista
+    const artistaSelect = document.getElementById('artistaSelect');
+    const discoSelect = document.getElementById('discoSelect');
+
+    artistaSelect.addEventListener('change', function() {
+        const artistaId = this.value;
+        const options = discoSelect.querySelectorAll('option');
+
+        options.forEach(option => {
+            if (option.value === '') {
+                option.style.display = '';
+            } else {
+                const optionArtista = option.getAttribute('data-artista');
+                option.style.display = (!artistaId || optionArtista === artistaId) ? '' : 'none';
+            }
+        });
+
+        // Reset selection if current disco doesn't match artista
+        const currentOption = discoSelect.querySelector('option:checked');
+        if (currentOption && currentOption.value && currentOption.getAttribute('data-artista') !== artistaId) {
+            discoSelect.value = '';
+        }
+    });
+</script>
+{% endblock %}

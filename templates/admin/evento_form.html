@@ -1,0 +1,459 @@
+{% extends "base.html" %}
+
+{% block title %}{{ 'Modifica' if evento else 'Nuovo' }} Evento - Maqueta Web{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="page-header">
+    <div>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-2">
+                <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}" class="text-decoration-none">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('lista_eventi') }}" class="text-decoration-none">Eventi</a></li>
+                <li class="breadcrumb-item active">{{ 'Modifica' if evento else 'Nuovo' }}</li>
+            </ol>
+        </nav>
+        <h1>
+            <i class="bi bi-{{ 'pencil-square' if evento else 'plus-circle' }}"></i>
+            {{ 'Modifica Evento' if evento else 'Nuovo Evento' }}
+        </h1>
+    </div>
+    <a href="{{ url_for('lista_eventi') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i>
+        Torna alla lista
+    </a>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <form method="POST" id="eventoForm" enctype="multipart/form-data">
+            <!-- Informazioni Base -->
+            <div class="card mb-4 slide-up">
+                <div class="card-header">
+                    <i class="bi bi-info-circle me-2"></i>
+                    Informazioni Base
+                </div>
+                <div class="card-body">
+                    <div class="row g-4">
+                        <div class="col-md-8">
+                            <label class="form-label">
+                                Titolo Evento <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" class="form-control" name="titolo"
+                                value="{{ evento.titolo if evento else '' }}"
+                                placeholder="Es. Concerto al Teatro Ariston" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Tipo</label>
+                            <select class="form-select" name="tipo">
+                                <option value="concerto" {{ 'selected' if evento and evento.tipo == 'concerto' else '' }}>Concerto</option>
+                                <option value="festival" {{ 'selected' if evento and evento.tipo == 'festival' else '' }}>Festival</option>
+                                <option value="showcase" {{ 'selected' if evento and evento.tipo == 'showcase' else '' }}>Showcase</option>
+                                <option value="dj_set" {{ 'selected' if evento and evento.tipo == 'dj_set' else '' }}>DJ Set</option>
+                                <option value="live_session" {{ 'selected' if evento and evento.tipo == 'live_session' else '' }}>Live Session</option>
+                                <option value="altro" {{ 'selected' if evento and evento.tipo == 'altro' else '' }}>Altro</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">
+                                Artista <span class="text-danger">*</span>
+                            </label>
+                            <select class="form-select" name="artista_id" required>
+                                <option value="">Seleziona artista...</option>
+                                {% for artista in artisti %}
+                                <option value="{{ artista.id }}" {{ 'selected' if evento and evento.artista_id == artista.id else '' }}>
+                                    {{ artista.nome_display }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Slug URL</label>
+                            <input type="text" class="form-control" name="slug"
+                                value="{{ evento.slug if evento else '' }}"
+                                placeholder="Generato automaticamente">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Descrizione</label>
+                            <textarea class="form-control" name="descrizione" rows="4"
+                                placeholder="Descrizione dell'evento...">{{ evento.descrizione if evento and evento.descrizione else '' }}</textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Data e Ora -->
+            <div class="card mb-4 slide-up stagger-1">
+                <div class="card-header">
+                    <i class="bi bi-calendar me-2"></i>
+                    Data e Ora
+                </div>
+                <div class="card-body">
+                    <div class="row g-4">
+                        <div class="col-md-4">
+                            <label class="form-label">
+                                Data Evento <span class="text-danger">*</span>
+                            </label>
+                            <input type="date" class="form-control" name="data_evento"
+                                value="{{ evento.data_evento.strftime('%Y-%m-%d') if evento and evento.data_evento else '' }}" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Ora Inizio</label>
+                            <input type="time" class="form-control" name="ora_inizio"
+                                value="{{ evento.ora_inizio.strftime('%H:%M') if evento and evento.ora_inizio else '' }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Ora Fine</label>
+                            <input type="time" class="form-control" name="ora_fine"
+                                value="{{ evento.ora_fine.strftime('%H:%M') if evento and evento.ora_fine else '' }}">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Location -->
+            <div class="card mb-4 slide-up stagger-2">
+                <div class="card-header">
+                    <i class="bi bi-geo-alt me-2"></i>
+                    Location
+                </div>
+                <div class="card-body">
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <label class="form-label">Venue / Locale</label>
+                            <input type="text" class="form-control" name="venue"
+                                value="{{ evento.venue if evento and evento.venue else '' }}"
+                                placeholder="Es. Teatro Ariston, Stadio San Siro">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">
+                                Citta <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" class="form-control" name="citta"
+                                value="{{ evento.citta if evento else '' }}"
+                                placeholder="Es. Milano" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Paese</label>
+                            <input type="text" class="form-control" name="paese"
+                                value="{{ evento.paese if evento and evento.paese else 'Italia' }}"
+                                placeholder="Italia">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Indirizzo</label>
+                            <input type="text" class="form-control" name="indirizzo"
+                                value="{{ evento.indirizzo if evento and evento.indirizzo else '' }}"
+                                placeholder="Via Roma, 1">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Coordinate GPS</label>
+                            <input type="text" class="form-control" name="coordinate_gps"
+                                value="{{ evento.coordinate_gps if evento and evento.coordinate_gps else '' }}"
+                                placeholder="Es. 45.4642,9.1900">
+                            <small class="text-muted">Latitudine,Longitudine (opzionale, per mappe)</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Biglietti -->
+            <div class="card mb-4 slide-up stagger-3">
+                <div class="card-header">
+                    <i class="bi bi-ticket me-2"></i>
+                    Biglietti
+                </div>
+                <div class="card-body">
+                    <div class="row g-4">
+                        <div class="col-12">
+                            <label class="form-label">Link Acquisto Biglietti</label>
+                            <input type="url" class="form-control" name="link_biglietti"
+                                value="{{ evento.link_biglietti if evento and evento.link_biglietti else '' }}"
+                                placeholder="https://www.ticketone.it/...">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Prezzo Da</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-currency-euro"></i></span>
+                                <input type="number" step="0.01" min="0" class="form-control" name="prezzo_da"
+                                    value="{{ '%.2f'|format(evento.prezzo_da) if evento and evento.prezzo_da else '' }}"
+                                    placeholder="25.00">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Prezzo A</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-currency-euro"></i></span>
+                                <input type="number" step="0.01" min="0" class="form-control" name="prezzo_a"
+                                    value="{{ '%.2f'|format(evento.prezzo_a) if evento and evento.prezzo_a else '' }}"
+                                    placeholder="50.00">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="p-3 rounded h-100" style="background: var(--gray-100);">
+                                <div class="form-check form-switch d-flex align-items-center">
+                                    <input class="form-check-input me-3" type="checkbox" name="sold_out" id="sold_out"
+                                        {{ 'checked' if evento and evento.sold_out else '' }}
+                                        style="width: 3.5rem; height: 1.75rem;">
+                                    <label class="form-check-label" for="sold_out">
+                                        <strong class="d-block text-danger">Sold Out</strong>
+                                        <small class="text-muted">Biglietti esauriti</small>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Immagine -->
+            <div class="card mb-4 slide-up stagger-4">
+                <div class="card-header">
+                    <i class="bi bi-image me-2"></i>
+                    Immagine Evento
+                </div>
+                <div class="card-body">
+                    {% if evento and evento.immagine %}
+                    <div class="mb-3 p-3 border rounded bg-light">
+                        <div class="d-flex align-items-center">
+                            <img src="{{ url_for('static', filename='uploads/' + evento.immagine) }}"
+                                 alt="{{ evento.titolo }}" class="rounded me-3"
+                                 style="width: 120px; height: 80px; object-fit: cover;">
+                            <div class="flex-grow-1">
+                                <small class="text-muted d-block">Immagine attuale</small>
+                                <div class="form-check mt-2">
+                                    <input class="form-check-input" type="checkbox" name="rimuovi_immagine" id="rimuovi_immagine">
+                                    <label class="form-check-label text-danger" for="rimuovi_immagine">
+                                        Rimuovi immagine
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    <input type="file" class="form-control" name="immagine"
+                        accept="image/png,image/jpeg,image/jpg,image/gif,image/webp">
+                    <small class="text-muted">Locandina o immagine promozionale (formato orizzontale consigliato)</small>
+                </div>
+            </div>
+
+            <!-- Stato -->
+            <div class="card mb-4 slide-up stagger-5">
+                <div class="card-header">
+                    <i class="bi bi-sliders me-2"></i>
+                    Stato
+                </div>
+                <div class="card-body">
+                    <div class="row g-4">
+                        <div class="col-md-4">
+                            <label class="form-label">Stato Evento</label>
+                            <select class="form-select" name="stato">
+                                <option value="programmato" {{ 'selected' if evento and evento.stato == 'programmato' else '' }}>Programmato</option>
+                                <option value="confermato" {{ 'selected' if evento and evento.stato == 'confermato' else '' }}>Confermato</option>
+                                <option value="posticipato" {{ 'selected' if evento and evento.stato == 'posticipato' else '' }}>Posticipato</option>
+                                <option value="annullato" {{ 'selected' if evento and evento.stato == 'annullato' else '' }}>Annullato</option>
+                                <option value="concluso" {{ 'selected' if evento and evento.stato == 'concluso' else '' }}>Concluso</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="p-3 rounded h-100" style="background: var(--gray-100);">
+                                <div class="form-check form-switch d-flex align-items-center">
+                                    <input class="form-check-input me-3" type="checkbox" name="pubblicato" id="pubblicato"
+                                        {{ 'checked' if evento and evento.pubblicato else '' }}
+                                        style="width: 3.5rem; height: 1.75rem;">
+                                    <label class="form-check-label" for="pubblicato">
+                                        <strong class="d-block">Pubblicato</strong>
+                                        <small class="text-muted">Visibile sul sito</small>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="p-3 rounded h-100" style="background: var(--gray-100);">
+                                <div class="form-check form-switch d-flex align-items-center">
+                                    <input class="form-check-input me-3" type="checkbox" name="in_evidenza" id="in_evidenza"
+                                        {{ 'checked' if evento and evento.in_evidenza else '' }}
+                                        style="width: 3.5rem; height: 1.75rem;">
+                                    <label class="form-check-label" for="in_evidenza">
+                                        <strong class="d-block">In Evidenza</strong>
+                                        <small class="text-muted">Mostra in homepage</small>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pulsanti Azione -->
+            <div class="d-flex gap-3 mb-4">
+                <button type="submit" class="btn btn-primary btn-lg">
+                    <i class="bi bi-check-lg me-1"></i>
+                    {{ 'Salva Modifiche' if evento else 'Crea Evento' }}
+                </button>
+                <a href="{{ url_for('lista_eventi') }}" class="btn btn-secondary btn-lg">
+                    <i class="bi bi-x-lg me-1"></i>
+                    Annulla
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="col-lg-4">
+        {% if evento %}
+        <!-- Info Evento -->
+        <div class="card mb-4 slide-up">
+            <div class="card-header">
+                <i class="bi bi-calendar-event me-2"></i>
+                Info Evento
+            </div>
+            <div class="card-body">
+                <div class="text-center mb-3">
+                    {% if evento.immagine %}
+                    <img src="{{ url_for('static', filename='uploads/' + evento.immagine) }}"
+                         alt="{{ evento.titolo }}" class="img-fluid rounded mb-2"
+                         style="max-height: 150px;">
+                    {% else %}
+                    <div class="rounded d-flex align-items-center justify-content-center mx-auto mb-2"
+                         style="width: 100px; height: 100px; background: var(--gray-200);">
+                        <i class="bi bi-calendar-event" style="font-size: 2.5rem;"></i>
+                    </div>
+                    {% endif %}
+                    <h6 class="mb-1">{{ evento.titolo }}</h6>
+                    <div class="text-muted small">{{ evento.tipo_display }}</div>
+                </div>
+                <div class="divider"></div>
+                <div class="d-flex justify-content-between py-2">
+                    <span class="text-muted">Data</span>
+                    <span class="fw-semibold">{{ evento.data_display }}</span>
+                </div>
+                <div class="d-flex justify-content-between py-2">
+                    <span class="text-muted">Luogo</span>
+                    <span class="fw-semibold">{{ evento.luogo_display }}</span>
+                </div>
+                <div class="d-flex justify-content-between py-2">
+                    <span class="text-muted">Stato</span>
+                    {% if evento.stato == 'confermato' %}
+                    <span class="badge bg-success">{{ evento.stato_display }}</span>
+                    {% elif evento.stato == 'programmato' %}
+                    <span class="badge bg-warning">{{ evento.stato_display }}</span>
+                    {% elif evento.stato == 'annullato' %}
+                    <span class="badge bg-danger">{{ evento.stato_display }}</span>
+                    {% else %}
+                    <span class="badge bg-secondary">{{ evento.stato_display }}</span>
+                    {% endif %}
+                </div>
+                {% if evento.prezzo_display %}
+                <div class="d-flex justify-content-between py-2">
+                    <span class="text-muted">Prezzo</span>
+                    <span class="fw-semibold text-success">{{ evento.prezzo_display }}</span>
+                </div>
+                {% endif %}
+                {% if evento.sold_out %}
+                <div class="alert alert-danger mb-0 mt-3">
+                    <i class="bi bi-ticket-fill me-2"></i>
+                    <strong>SOLD OUT</strong>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Link Biglietti -->
+        {% if evento.link_biglietti %}
+        <div class="card mb-4 slide-up stagger-1">
+            <div class="card-header">
+                <i class="bi bi-ticket me-2"></i>
+                Biglietti
+            </div>
+            <div class="card-body">
+                <a href="{{ evento.link_biglietti }}" target="_blank" class="btn btn-primary w-100">
+                    <i class="bi bi-ticket-perforated me-2"></i>Acquista Biglietti
+                </a>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Elimina -->
+        <div class="card slide-up stagger-2">
+            <div class="card-header">
+                <i class="bi bi-lightning-charge me-2"></i>
+                Azioni
+            </div>
+            <div class="card-body">
+                <button type="button" class="btn btn-outline-danger w-100" data-bs-toggle="modal" data-bs-target="#deleteModal">
+                    <i class="bi bi-trash me-2"></i>Elimina Evento
+                </button>
+            </div>
+        </div>
+        {% else %}
+        <!-- Suggerimenti -->
+        <div class="card slide-up">
+            <div class="card-header">
+                <i class="bi bi-lightbulb me-2"></i>
+                Suggerimenti
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled mb-0">
+                    <li class="d-flex mb-3">
+                        <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
+                        <span>Inserisci sempre data e citta</span>
+                    </li>
+                    <li class="d-flex mb-3">
+                        <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
+                        <span>Aggiungi il link per l'acquisto biglietti</span>
+                    </li>
+                    <li class="d-flex mb-3">
+                        <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
+                        <span>Carica una locandina accattivante</span>
+                    </li>
+                    <li class="d-flex">
+                        <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
+                        <span>Aggiorna lo stato quando confermato</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% if evento %}
+<!-- Delete Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-0">
+                <h5 class="modal-title">
+                    <i class="bi bi-exclamation-triangle text-danger me-2"></i>
+                    Conferma Eliminazione
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-0">Sei sicuro di voler eliminare l'evento <strong>{{ evento.titolo }}</strong>?</p>
+                <p class="text-muted small mt-2 mb-0">Questa azione non puo essere annullata.</p>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                <form action="{{ url_for('elimina_evento', id=evento.id) }}" method="POST" class="d-inline">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash me-1"></i>Elimina
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Form validation feedback
+    document.getElementById('eventoForm').addEventListener('submit', function(e) {
+        const btn = this.querySelector('button[type="submit"]');
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Salvataggio...';
+        btn.disabled = true;
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,435 @@
+{% extends "base.html" %}
+
+{% block title %}{{ 'Modifica' if disco else 'Nuovo' }} Disco - Maqueta Web{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="page-header">
+    <div>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-2">
+                <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}" class="text-decoration-none">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('lista_dischi') }}" class="text-decoration-none">Discografia</a></li>
+                <li class="breadcrumb-item active">{{ 'Modifica' if disco else 'Nuovo' }}</li>
+            </ol>
+        </nav>
+        <h1>
+            <i class="bi bi-{{ 'pencil-square' if disco else 'plus-circle' }}"></i>
+            {{ 'Modifica Disco' if disco else 'Nuovo Disco' }}
+        </h1>
+    </div>
+    <a href="{{ url_for('lista_dischi') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i>
+        Torna alla lista
+    </a>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <form method="POST" id="discoForm" enctype="multipart/form-data">
+            <!-- Informazioni Base -->
+            <div class="card mb-4 slide-up">
+                <div class="card-header">
+                    <i class="bi bi-info-circle me-2"></i>
+                    Informazioni Base
+                </div>
+                <div class="card-body">
+                    <div class="row g-4">
+                        <div class="col-md-8">
+                            <label class="form-label">
+                                Titolo <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" class="form-control" name="titolo"
+                                value="{{ disco.titolo if disco else '' }}"
+                                placeholder="Titolo del disco" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">
+                                Tipo <span class="text-danger">*</span>
+                            </label>
+                            <select class="form-select" name="tipo" required>
+                                <option value="album" {{ 'selected' if disco and disco.tipo == 'album' else '' }}>Album</option>
+                                <option value="ep" {{ 'selected' if disco and disco.tipo == 'ep' else '' }}>EP</option>
+                                <option value="singolo" {{ 'selected' if disco and disco.tipo == 'singolo' else '' }}>Singolo</option>
+                                <option value="compilation" {{ 'selected' if disco and disco.tipo == 'compilation' else '' }}>Compilation</option>
+                                <option value="live" {{ 'selected' if disco and disco.tipo == 'live' else '' }}>Live</option>
+                                <option value="remix" {{ 'selected' if disco and disco.tipo == 'remix' else '' }}>Remix</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">
+                                Artista <span class="text-danger">*</span>
+                            </label>
+                            <select class="form-select" name="artista_id" required>
+                                <option value="">Seleziona artista...</option>
+                                {% for artista in artisti %}
+                                <option value="{{ artista.id }}" {{ 'selected' if disco and disco.artista_id == artista.id else '' }}>
+                                    {{ artista.nome_display }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Slug URL</label>
+                            <input type="text" class="form-control" name="slug"
+                                value="{{ disco.slug if disco else '' }}"
+                                placeholder="Generato automaticamente">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Descrizione</label>
+                            <textarea class="form-control" name="descrizione" rows="4"
+                                placeholder="Descrizione del disco, note di produzione...">{{ disco.descrizione if disco and disco.descrizione else '' }}</textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Copertina -->
+            <div class="card mb-4 slide-up stagger-1">
+                <div class="card-header">
+                    <i class="bi bi-image me-2"></i>
+                    Copertina
+                </div>
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-4">
+                            {% if disco and disco.copertina %}
+                            <img src="{{ url_for('static', filename='uploads/' + disco.copertina) }}"
+                                 alt="{{ disco.titolo }}" class="img-fluid rounded mb-3 mb-md-0"
+                                 style="max-width: 200px;">
+                            {% else %}
+                            <div class="rounded d-flex align-items-center justify-content-center mb-3 mb-md-0"
+                                 style="width: 150px; height: 150px; background: var(--gray-200);">
+                                <i class="bi bi-disc" style="font-size: 3rem; color: var(--gray-400);"></i>
+                            </div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-8">
+                            {% if disco and disco.copertina %}
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="checkbox" name="rimuovi_copertina" id="rimuovi_copertina">
+                                <label class="form-check-label text-danger" for="rimuovi_copertina">
+                                    Rimuovi copertina attuale
+                                </label>
+                            </div>
+                            {% endif %}
+                            <input type="file" class="form-control" name="copertina"
+                                accept="image/png,image/jpeg,image/jpg,image/gif,image/webp">
+                            <small class="text-muted">Dimensione consigliata: 1000x1000px (quadrata)</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dettagli Pubblicazione -->
+            <div class="card mb-4 slide-up stagger-2">
+                <div class="card-header">
+                    <i class="bi bi-calendar me-2"></i>
+                    Dettagli Pubblicazione
+                </div>
+                <div class="card-body">
+                    <div class="row g-4">
+                        <div class="col-md-4">
+                            <label class="form-label">Anno Uscita</label>
+                            <input type="number" class="form-control" name="anno_uscita"
+                                value="{{ disco.anno_uscita if disco and disco.anno_uscita else '' }}"
+                                placeholder="Es. 2024" min="1900" max="2099">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Data Uscita</label>
+                            <input type="date" class="form-control" name="data_uscita"
+                                value="{{ disco.data_uscita.strftime('%Y-%m-%d') if disco and disco.data_uscita else '' }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Etichetta</label>
+                            <input type="text" class="form-control" name="etichetta"
+                                value="{{ disco.etichetta if disco and disco.etichetta else '' }}"
+                                placeholder="Nome etichetta">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Formato</label>
+                            <input type="text" class="form-control" name="formato"
+                                value="{{ disco.formato if disco and disco.formato else '' }}"
+                                placeholder="Es. CD, Vinile, Digitale">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Ordine</label>
+                            <input type="number" class="form-control" name="ordine"
+                                value="{{ disco.ordine if disco else 0 }}" min="0">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Link Streaming -->
+            <div class="card mb-4 slide-up stagger-3">
+                <div class="card-header">
+                    <i class="bi bi-headphones me-2"></i>
+                    Link Streaming
+                </div>
+                <div class="card-body">
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <label class="form-label"><i class="bi bi-spotify text-success me-1"></i> Spotify</label>
+                            <input type="url" class="form-control" name="link_spotify"
+                                value="{{ disco.link_spotify if disco and disco.link_spotify else '' }}"
+                                placeholder="https://open.spotify.com/album/...">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label"><i class="bi bi-apple text-dark me-1"></i> Apple Music</label>
+                            <input type="url" class="form-control" name="link_apple_music"
+                                value="{{ disco.link_apple_music if disco and disco.link_apple_music else '' }}"
+                                placeholder="https://music.apple.com/...">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label"><i class="bi bi-youtube text-danger me-1"></i> YouTube Music</label>
+                            <input type="url" class="form-control" name="link_youtube_music"
+                                value="{{ disco.link_youtube_music if disco and disco.link_youtube_music else '' }}"
+                                placeholder="https://music.youtube.com/...">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label"><i class="bi bi-amazon me-1"></i> Amazon Music</label>
+                            <input type="url" class="form-control" name="link_amazon_music"
+                                value="{{ disco.link_amazon_music if disco and disco.link_amazon_music else '' }}"
+                                placeholder="https://music.amazon.com/...">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Deezer</label>
+                            <input type="url" class="form-control" name="link_deezer"
+                                value="{{ disco.link_deezer if disco and disco.link_deezer else '' }}"
+                                placeholder="https://deezer.com/...">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Tidal</label>
+                            <input type="url" class="form-control" name="link_tidal"
+                                value="{{ disco.link_tidal if disco and disco.link_tidal else '' }}"
+                                placeholder="https://tidal.com/...">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label"><i class="bi bi-cart me-1"></i> Link Acquisto</label>
+                            <input type="url" class="form-control" name="link_acquisto"
+                                value="{{ disco.link_acquisto if disco and disco.link_acquisto else '' }}"
+                                placeholder="Link per acquistare il disco fisico o digitale">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stato -->
+            <div class="card mb-4 slide-up stagger-4">
+                <div class="card-header">
+                    <i class="bi bi-sliders me-2"></i>
+                    Stato
+                </div>
+                <div class="card-body">
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <div class="p-3 rounded h-100" style="background: var(--gray-100);">
+                                <div class="form-check form-switch d-flex align-items-center">
+                                    <input class="form-check-input me-3" type="checkbox" name="pubblicato" id="pubblicato"
+                                        {{ 'checked' if disco and disco.pubblicato else '' }}
+                                        style="width: 3.5rem; height: 1.75rem;">
+                                    <label class="form-check-label" for="pubblicato">
+                                        <strong class="d-block">Pubblicato</strong>
+                                        <small class="text-muted">Visibile pubblicamente</small>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="p-3 rounded h-100" style="background: var(--gray-100);">
+                                <div class="form-check form-switch d-flex align-items-center">
+                                    <input class="form-check-input me-3" type="checkbox" name="in_evidenza" id="in_evidenza"
+                                        {{ 'checked' if disco and disco.in_evidenza else '' }}
+                                        style="width: 3.5rem; height: 1.75rem;">
+                                    <label class="form-check-label" for="in_evidenza">
+                                        <strong class="d-block">In Evidenza</strong>
+                                        <small class="text-muted">Mostra in homepage</small>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pulsanti Azione -->
+            <div class="d-flex gap-3 mb-4">
+                <button type="submit" class="btn btn-primary btn-lg">
+                    <i class="bi bi-check-lg me-1"></i>
+                    {{ 'Salva Modifiche' if disco else 'Crea Disco' }}
+                </button>
+                <a href="{{ url_for('lista_dischi') }}" class="btn btn-secondary btn-lg">
+                    <i class="bi bi-x-lg me-1"></i>
+                    Annulla
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="col-lg-4">
+        {% if disco %}
+        <!-- Info Disco -->
+        <div class="card mb-4 slide-up">
+            <div class="card-header">
+                <i class="bi bi-disc me-2"></i>
+                Info Disco
+            </div>
+            <div class="card-body">
+                <div class="text-center mb-3">
+                    {% if disco.copertina %}
+                    <img src="{{ url_for('static', filename='uploads/' + disco.copertina) }}"
+                         alt="{{ disco.titolo }}" class="rounded mb-2"
+                         style="width: 120px; height: 120px; object-fit: cover;">
+                    {% else %}
+                    <div class="rounded d-flex align-items-center justify-content-center mx-auto mb-2"
+                         style="width: 100px; height: 100px; background: var(--gray-200);">
+                        <i class="bi bi-disc" style="font-size: 2.5rem;"></i>
+                    </div>
+                    {% endif %}
+                    <h6 class="mb-1">{{ disco.titolo }}</h6>
+                    <span class="badge bg-secondary">{{ disco.tipo_display }}</span>
+                </div>
+                <div class="divider"></div>
+                <div class="d-flex justify-content-between py-2">
+                    <span class="text-muted">ID</span>
+                    <span class="fw-semibold">#{{ disco.id }}</span>
+                </div>
+                <div class="d-flex justify-content-between py-2">
+                    <span class="text-muted">Brani</span>
+                    <span class="badge bg-primary">{{ brani|length }}</span>
+                </div>
+                {% if disco.anno_uscita %}
+                <div class="d-flex justify-content-between py-2">
+                    <span class="text-muted">Anno</span>
+                    <span class="fw-semibold">{{ disco.anno_uscita }}</span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Tracklist -->
+        <div class="card mb-4 slide-up stagger-1">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-music-note-list me-2"></i>Tracklist</span>
+                <a href="{{ url_for('nuovo_brano') }}" class="btn btn-sm btn-primary">
+                    <i class="bi bi-plus"></i>
+                </a>
+            </div>
+            <div class="card-body p-0">
+                {% if brani %}
+                <ul class="list-group list-group-flush">
+                    {% for brano in brani %}
+                    <li class="list-group-item d-flex align-items-center">
+                        <span class="text-muted me-3" style="width: 25px;">{{ brano.numero_traccia or loop.index }}</span>
+                        <div class="flex-grow-1">
+                            <div class="fw-semibold small">{{ brano.titolo }}</div>
+                            {% if brano.durata %}
+                            <small class="text-muted">{{ brano.durata }}</small>
+                            {% endif %}
+                        </div>
+                        <a href="{{ url_for('modifica_brano', id=brano.id) }}" class="btn btn-sm btn-outline-secondary btn-icon" style="padding: 0.15rem 0.4rem;">
+                            <i class="bi bi-pencil" style="font-size: 0.7rem;"></i>
+                        </a>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <div class="text-center py-4 text-muted">
+                    <i class="bi bi-music-note d-block mb-2" style="font-size: 2rem;"></i>
+                    <small>Nessun brano</small>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Azioni Rapide -->
+        <div class="card slide-up stagger-2">
+            <div class="card-header">
+                <i class="bi bi-lightning-charge me-2"></i>
+                Azioni
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('nuovo_brano') }}" class="btn btn-outline-primary">
+                        <i class="bi bi-music-note me-2"></i>Aggiungi Brano
+                    </a>
+                    <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal">
+                        <i class="bi bi-trash me-2"></i>Elimina Disco
+                    </button>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <!-- Suggerimenti -->
+        <div class="card slide-up">
+            <div class="card-header">
+                <i class="bi bi-lightbulb me-2"></i>
+                Suggerimenti
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled mb-0">
+                    <li class="d-flex mb-3">
+                        <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
+                        <span>Carica una copertina quadrata ad alta risoluzione</span>
+                    </li>
+                    <li class="d-flex mb-3">
+                        <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
+                        <span>Aggiungi i link alle piattaforme streaming</span>
+                    </li>
+                    <li class="d-flex mb-3">
+                        <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
+                        <span>Dopo aver creato il disco, aggiungi i brani</span>
+                    </li>
+                    <li class="d-flex">
+                        <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
+                        <span>Pubblica quando tutto e pronto</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% if disco %}
+<!-- Delete Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-0">
+                <h5 class="modal-title">
+                    <i class="bi bi-exclamation-triangle text-danger me-2"></i>
+                    Conferma Eliminazione
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-0">Sei sicuro di voler eliminare il disco <strong>{{ disco.titolo }}</strong>?</p>
+                <p class="text-muted small mt-2 mb-0">I brani associati rimarranno ma senza disco collegato.</p>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                <form action="{{ url_for('elimina_disco', id=disco.id) }}" method="POST" class="d-inline">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash me-1"></i>Elimina
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Form validation feedback
+    document.getElementById('discoForm').addEventListener('submit', function(e) {
+        const btn = this.querySelector('button[type="submit"]');
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Salvataggio...';
+        btn.disabled = true;
+    });
+</script>
+{% endblock %}

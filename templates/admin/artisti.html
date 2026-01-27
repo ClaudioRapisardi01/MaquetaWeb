@@ -1,0 +1,307 @@
+{% extends "base.html" %}
+
+{% block title %}Gestione Artisti - Maqueta Web{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="page-header">
+    <div>
+        <h1><i class="bi bi-people-fill"></i>Gestione Artisti</h1>
+        <p class="text-muted mb-0 mt-1">Gestisci gli artisti dell'etichetta discografica</p>
+    </div>
+    <a href="{{ url_for('nuovo_artista') }}" class="btn btn-primary btn-lg">
+        <i class="bi bi-plus-circle"></i>
+        Nuovo Artista
+    </a>
+</div>
+
+<!-- Stats Row -->
+<div class="row mb-4">
+    <div class="col-md-3 mb-3 mb-md-0">
+        <div class="card border-0" style="background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);">
+            <div class="card-body py-3">
+                <div class="d-flex align-items-center">
+                    <div class="rounded-circle bg-white bg-opacity-25 p-3 me-3">
+                        <i class="bi bi-people-fill text-white" style="font-size: 1.5rem;"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-white mb-0">{{ artisti|length }}</h3>
+                        <small class="text-white opacity-75">Artisti Totali</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3 mb-md-0">
+        <div class="card border-0" style="background: linear-gradient(135deg, var(--success) 0%, #059669 100%);">
+            <div class="card-body py-3">
+                <div class="d-flex align-items-center">
+                    <div class="rounded-circle bg-white bg-opacity-25 p-3 me-3">
+                        <i class="bi bi-person-fill text-white" style="font-size: 1.5rem;"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-white mb-0">{{ artisti|rejectattr('is_band')|list|length }}</h3>
+                        <small class="text-white opacity-75">Solisti</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3 mb-md-0">
+        <div class="card border-0" style="background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);">
+            <div class="card-body py-3">
+                <div class="d-flex align-items-center">
+                    <div class="rounded-circle bg-white bg-opacity-25 p-3 me-3">
+                        <i class="bi bi-music-note-list text-white" style="font-size: 1.5rem;"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-white mb-0">{{ artisti|selectattr('is_band')|list|length }}</h3>
+                        <small class="text-white opacity-75">Band</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0" style="background: linear-gradient(135deg, var(--warning) 0%, #d97706 100%);">
+            <div class="card-body py-3">
+                <div class="d-flex align-items-center">
+                    <div class="rounded-circle bg-white bg-opacity-25 p-3 me-3">
+                        <i class="bi bi-star-fill text-white" style="font-size: 1.5rem;"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-white mb-0">{{ artisti|selectattr('in_evidenza')|list|length }}</h3>
+                        <small class="text-white opacity-75">In Evidenza</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Artists Table -->
+<div class="card slide-up">
+    <div class="card-header d-flex align-items-center justify-content-between">
+        <div>
+            <i class="bi bi-table me-2"></i>
+            Lista Artisti
+        </div>
+        <div class="d-flex gap-2">
+            <select class="form-select form-select-sm" id="filterType" style="width: 130px;">
+                <option value="">Tutti i tipi</option>
+                <option value="solista">Solisti</option>
+                <option value="band">Band</option>
+            </select>
+            <div class="input-group" style="width: 250px;">
+                <span class="input-group-text bg-transparent border-end-0">
+                    <i class="bi bi-search text-muted"></i>
+                </span>
+                <input type="text" class="form-control border-start-0" id="searchInput" placeholder="Cerca artista...">
+            </div>
+        </div>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0" id="artistsTable">
+                <thead>
+                    <tr>
+                        <th class="d-none d-md-table-cell" style="width: 50px;">#</th>
+                        <th>Artista</th>
+                        <th class="d-none d-lg-table-cell">Genere</th>
+                        <th class="d-none d-md-table-cell">Tipo</th>
+                        <th class="d-none d-lg-table-cell">Stato</th>
+                        <th class="text-end" style="width: 100px;">Azioni</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for artista in artisti %}
+                    <tr class="artist-row" data-type="{{ 'band' if artista.is_band else 'solista' }}">
+                        <td class="d-none d-md-table-cell">
+                            <span class="text-muted fw-semibold">{{ artista.id }}</span>
+                        </td>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                {% if artista.foto %}
+                                <img src="{{ url_for('static', filename='uploads/' + artista.foto) }}"
+                                     alt="{{ artista.nome_display }}" class="rounded-circle me-3"
+                                     style="width: 45px; height: 45px; object-fit: cover;">
+                                {% else %}
+                                <div class="rounded-circle d-flex align-items-center justify-content-center me-3"
+                                     style="width: 45px; height: 45px; background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);">
+                                    <i class="bi bi-{{ 'people-fill' if artista.is_band else 'person-fill' }} text-white" style="font-size: 1.2rem;"></i>
+                                </div>
+                                {% endif %}
+                                <div>
+                                    <div class="fw-semibold">{{ artista.nome_display }}</div>
+                                    {% if artista.nome_arte and artista.nome != artista.nome_arte %}
+                                    <div class="small text-muted">{{ artista.nome }}</div>
+                                    {% endif %}
+                                    {% if artista.citta or artista.paese %}
+                                    <div class="small text-muted">
+                                        <i class="bi bi-geo-alt"></i>
+                                        {{ artista.citta }}{% if artista.citta and artista.paese %}, {% endif %}{{ artista.paese }}
+                                    </div>
+                                    {% endif %}
+                                    <!-- Info extra visibili solo su mobile -->
+                                    <div class="d-md-none mt-1">
+                                        {% if artista.is_band %}
+                                        <span class="badge bg-purple badge-sm me-1">Band</span>
+                                        {% else %}
+                                        <span class="badge bg-info badge-sm me-1">Solista</span>
+                                        {% endif %}
+                                        {% if artista.attivo %}
+                                        <span class="badge bg-success badge-sm">Attivo</span>
+                                        {% else %}
+                                        <span class="badge bg-danger badge-sm">Disattivato</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="d-none d-lg-table-cell">
+                            {% if artista.genere %}
+                            <span class="badge bg-secondary">{{ artista.genere }}</span>
+                            {% else %}
+                            <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td class="d-none d-md-table-cell">
+                            {% if artista.is_band %}
+                            <span class="badge" style="background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);">
+                                <i class="bi bi-people me-1"></i>Band
+                            </span>
+                            {% else %}
+                            <span class="badge bg-info">
+                                <i class="bi bi-person me-1"></i>Solista
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="d-none d-lg-table-cell">
+                            <div class="d-flex flex-column gap-1">
+                                {% if artista.attivo %}
+                                <span class="badge bg-success">
+                                    <i class="bi bi-check-circle me-1"></i>Attivo
+                                </span>
+                                {% else %}
+                                <span class="badge bg-danger">
+                                    <i class="bi bi-x-circle me-1"></i>Disattivato
+                                </span>
+                                {% endif %}
+                                {% if artista.in_evidenza %}
+                                <span class="badge bg-warning">
+                                    <i class="bi bi-star me-1"></i>In evidenza
+                                </span>
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td>
+                            <div class="btn-group-actions justify-content-end">
+                                <a href="{{ url_for('modifica_artista', id=artista.id) }}"
+                                   class="btn btn-sm btn-outline-primary btn-icon"
+                                   data-bs-toggle="tooltip" title="Modifica">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <button type="button"
+                                        class="btn btn-sm btn-outline-danger btn-icon"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#deleteModal"
+                                        data-artist-id="{{ artista.id }}"
+                                        data-artist-name="{{ artista.nome_display }}"
+                                        title="Elimina">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% if not artisti %}
+        <div class="empty-state py-5">
+            <i class="bi bi-people"></i>
+            <h5>Nessun artista trovato</h5>
+            <p class="text-muted">Inizia aggiungendo il primo artista all'etichetta</p>
+            <a href="{{ url_for('nuovo_artista') }}" class="btn btn-primary">
+                <i class="bi bi-plus-circle me-1"></i>Aggiungi Artista
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Delete Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-0">
+                <h5 class="modal-title">
+                    <i class="bi bi-exclamation-triangle text-danger me-2"></i>
+                    Conferma Eliminazione
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-0">Sei sicuro di voler eliminare l'artista <strong id="deleteArtistName"></strong>?</p>
+                <p class="text-danger small mt-2 mb-0">
+                    <i class="bi bi-exclamation-circle me-1"></i>
+                    Questa azione eliminera anche tutti i dischi, brani, eventi e membri associati.
+                </p>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                <form id="deleteForm" method="POST" class="d-inline">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash me-1"></i>Elimina
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<style>
+    .bg-purple { background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%) !important; }
+</style>
+<script>
+    // Search functionality
+    document.getElementById('searchInput').addEventListener('keyup', filterTable);
+    document.getElementById('filterType').addEventListener('change', filterTable);
+
+    function filterTable() {
+        const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+        const typeFilter = document.getElementById('filterType').value;
+        const rows = document.querySelectorAll('.artist-row');
+
+        rows.forEach(row => {
+            const text = row.textContent.toLowerCase();
+            const type = row.getAttribute('data-type');
+
+            const matchesSearch = text.includes(searchTerm);
+            const matchesType = !typeFilter || type === typeFilter;
+
+            row.style.display = (matchesSearch && matchesType) ? '' : 'none';
+        });
+    }
+
+    // Delete modal
+    const deleteModal = document.getElementById('deleteModal');
+    deleteModal.addEventListener('show.bs.modal', function(event) {
+        const button = event.relatedTarget;
+        const artistId = button.getAttribute('data-artist-id');
+        const artistName = button.getAttribute('data-artist-name');
+
+        document.getElementById('deleteArtistName').textContent = artistName;
+        document.getElementById('deleteForm').action = '/admin/artisti/' + artistId + '/elimina';
+    });
+
+    // Initialize tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function(tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+</script>
+{% endblock %}

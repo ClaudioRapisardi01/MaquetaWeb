@@ -74,8 +74,61 @@
                         </div>
                         <div class="col-12">
                             <label class="form-label">Contenuto Completo</label>
+                            <!-- Toolbar di formattazione -->
+                            <div class="editor-toolbar btn-toolbar mb-2 p-2 bg-light rounded border" role="toolbar">
+                                <div class="btn-group btn-group-sm me-2" role="group">
+                                    <button type="button" class="btn btn-outline-secondary" onclick="formatText('bold')" title="Grassetto">
+                                        <i class="bi bi-type-bold"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-outline-secondary" onclick="formatText('italic')" title="Corsivo">
+                                        <i class="bi bi-type-italic"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-outline-secondary" onclick="formatText('underline')" title="Sottolineato">
+                                        <i class="bi bi-type-underline"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-outline-secondary" onclick="formatText('strikethrough')" title="Barrato">
+                                        <i class="bi bi-type-strikethrough"></i>
+                                    </button>
+                                </div>
+                                <div class="btn-group btn-group-sm me-2" role="group">
+                                    <button type="button" class="btn btn-outline-secondary" onclick="formatText('h2')" title="Titolo H2">
+                                        <i class="bi bi-type-h2"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-outline-secondary" onclick="formatText('h3')" title="Titolo H3">
+                                        <i class="bi bi-type-h3"></i>
+                                    </button>
+                                </div>
+                                <div class="btn-group btn-group-sm me-2" role="group">
+                                    <button type="button" class="btn btn-outline-secondary" onclick="formatText('ul')" title="Lista puntata">
+                                        <i class="bi bi-list-ul"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-outline-secondary" onclick="formatText('ol')" title="Lista numerata">
+                                        <i class="bi bi-list-ol"></i>
+                                    </button>
+                                </div>
+                                <div class="btn-group btn-group-sm me-2" role="group">
+                                    <button type="button" class="btn btn-outline-secondary" onclick="formatText('link')" title="Inserisci Link">
+                                        <i class="bi bi-link-45deg"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-outline-secondary" onclick="formatText('image')" title="Inserisci Immagine">
+                                        <i class="bi bi-image"></i>
+                                    </button>
+                                </div>
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <button type="button" class="btn btn-outline-secondary" onclick="formatText('quote')" title="Citazione">
+                                        <i class="bi bi-blockquote-left"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-outline-secondary" onclick="formatText('code')" title="Codice">
+                                        <i class="bi bi-code"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-outline-secondary" onclick="formatText('hr')" title="Linea orizzontale">
+                                        <i class="bi bi-hr"></i>
+                                    </button>
+                                </div>
+                            </div>
                             <textarea class="form-control" name="contenuto" id="contenutoEditor" rows="15"
                                 placeholder="Scrivi qui il contenuto completo della news...">{{ news.contenuto if news and news.contenuto else '' }}</textarea>
+                            <small class="text-muted">Usa la toolbar sopra per formattare il testo o inserisci direttamente codice HTML</small>
                         </div>
                     </div>
                 </div>
@@ -83,9 +136,14 @@
 
             <!-- Immagine -->
             <div class="card mb-4 slide-up stagger-2">
-                <div class="card-header">
-                    <i class="bi bi-image me-2"></i>
-                    Immagine di Copertina
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span>
+                        <i class="bi bi-image me-2"></i>
+                        Immagine di Copertina
+                    </span>
+                    <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#galleriaModal">
+                        <i class="bi bi-images me-1"></i>Galleria Immagini
+                    </button>
                 </div>
                 <div class="card-body">
                     {% if news and news.immagine %}
@@ -109,6 +167,7 @@
                     <input type="file" class="form-control" name="immagine" id="immagineInput"
                         accept="image/png,image/jpeg,image/jpg,image/gif,image/webp">
                     <small class="text-muted">Formati: PNG, JPG, GIF, WebP (max 16MB). Dimensione consigliata: 1200x630px</small>
+                    <small class="d-block text-info mt-1"><i class="bi bi-info-circle me-1"></i>Oppure scegli un'immagine dalla Galleria</small>
 
                     <!-- Anteprima immagine -->
                     <div class="mt-3" id="previewContainer" style="display: none;">
@@ -118,6 +177,9 @@
                                  class="img-fluid rounded" style="max-height: 200px;">
                         </div>
                     </div>
+
+                    <!-- Campo nascosto per immagine selezionata dalla galleria -->
+                    <input type="hidden" name="immagine_esistente" id="immagineEsistente" value="">
                 </div>
             </div>
 
@@ -360,6 +422,47 @@
     </div>
 </div>
 {% endif %}
+
+<!-- Galleria Immagini Modal -->
+<div class="modal fade" id="galleriaModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-images me-2"></i>
+                    Galleria Immagini
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <div class="btn-group btn-group-sm" role="group">
+                        <button type="button" class="btn btn-outline-primary active" id="btnUsaCopertina">
+                            <i class="bi bi-image me-1"></i>Usa come copertina
+                        </button>
+                        <button type="button" class="btn btn-outline-primary" id="btnInserisciContenuto">
+                            <i class="bi bi-file-text me-1"></i>Inserisci nel contenuto
+                        </button>
+                    </div>
+                </div>
+                <div id="galleriaLoading" class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Caricamento...</span>
+                    </div>
+                    <p class="mt-2 text-muted">Caricamento immagini...</p>
+                </div>
+                <div id="galleriaEmpty" class="text-center py-5" style="display: none;">
+                    <i class="bi bi-images text-muted" style="font-size: 3rem;"></i>
+                    <p class="mt-2 text-muted">Nessuna immagine caricata</p>
+                </div>
+                <div id="galleriaGrid" class="row g-3" style="display: none;"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Chiudi</button>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
@@ -367,19 +470,17 @@
     // Auto-genera slug dal titolo
     document.getElementById('titoloInput').addEventListener('input', function() {
         const slugInput = document.getElementById('slugInput');
-        // Genera slug solo se l'utente non ha gia inserito uno slug personalizzato
         if (!slugInput.dataset.customized) {
             const slug = this.value
                 .toLowerCase()
                 .normalize('NFD')
-                .replace(/[\u0300-\u036f]/g, '') // Rimuove accenti
+                .replace(/[\u0300-\u036f]/g, '')
                 .replace(/[^a-z0-9]+/g, '-')
                 .replace(/^-+|-+$/g, '');
             slugInput.value = slug;
         }
     });
 
-    // Marca lo slug come personalizzato se l'utente lo modifica manualmente
     document.getElementById('slugInput').addEventListener('input', function() {
         this.dataset.customized = 'true';
     });
@@ -389,6 +490,8 @@
         const file = e.target.files[0];
         const previewContainer = document.getElementById('previewContainer');
         const imagePreview = document.getElementById('imagePreview');
+        // Resetta immagine esistente se si carica una nuova
+        document.getElementById('immagineEsistente').value = '';
 
         if (file) {
             const reader = new FileReader();
@@ -408,5 +511,194 @@
         btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Salvataggio...';
         btn.disabled = true;
     });
+
+    // ============ TOOLBAR FORMATTAZIONE ============
+    const editor = document.getElementById('contenutoEditor');
+
+    function formatText(type) {
+        const start = editor.selectionStart;
+        const end = editor.selectionEnd;
+        const selectedText = editor.value.substring(start, end);
+        let before = editor.value.substring(0, start);
+        let after = editor.value.substring(end);
+        let replacement = '';
+
+        switch(type) {
+            case 'bold':
+                replacement = `<b>${selectedText || 'testo'}</b>`;
+                break;
+            case 'italic':
+                replacement = `<i>${selectedText || 'testo'}</i>`;
+                break;
+            case 'underline':
+                replacement = `<u>${selectedText || 'testo'}</u>`;
+                break;
+            case 'strikethrough':
+                replacement = `<s>${selectedText || 'testo'}</s>`;
+                break;
+            case 'h2':
+                replacement = `<h2>${selectedText || 'Titolo'}</h2>`;
+                break;
+            case 'h3':
+                replacement = `<h3>${selectedText || 'Sottotitolo'}</h3>`;
+                break;
+            case 'ul':
+                if (selectedText) {
+                    const items = selectedText.split('\n').map(item => `    <li>${item}</li>`).join('\n');
+                    replacement = `<ul>\n${items}\n</ul>`;
+                } else {
+                    replacement = `<ul>\n    <li>Elemento 1</li>\n    <li>Elemento 2</li>\n</ul>`;
+                }
+                break;
+            case 'ol':
+                if (selectedText) {
+                    const items = selectedText.split('\n').map(item => `    <li>${item}</li>`).join('\n');
+                    replacement = `<ol>\n${items}\n</ol>`;
+                } else {
+                    replacement = `<ol>\n    <li>Elemento 1</li>\n    <li>Elemento 2</li>\n</ol>`;
+                }
+                break;
+            case 'link':
+                const url = prompt('Inserisci URL:', 'https://');
+                if (url) {
+                    replacement = `<a href="${url}">${selectedText || 'Clicca qui'}</a>`;
+                } else {
+                    return;
+                }
+                break;
+            case 'image':
+                const imgUrl = prompt('Inserisci URL immagine:', 'https://');
+                if (imgUrl) {
+                    const alt = selectedText || 'Immagine';
+                    replacement = `<img src="${imgUrl}" alt="${alt}" class="img-fluid">`;
+                } else {
+                    return;
+                }
+                break;
+            case 'quote':
+                replacement = `<blockquote class="blockquote">\n    <p>${selectedText || 'Citazione'}</p>\n</blockquote>`;
+                break;
+            case 'code':
+                replacement = `<code>${selectedText || 'codice'}</code>`;
+                break;
+            case 'hr':
+                replacement = `<hr>`;
+                break;
+        }
+
+        editor.value = before + replacement + after;
+        editor.focus();
+        editor.selectionStart = start;
+        editor.selectionEnd = start + replacement.length;
+    }
+
+    // ============ GALLERIA IMMAGINI ============
+    let galleriaMode = 'copertina'; // 'copertina' o 'contenuto'
+    let immaginiCaricate = [];
+
+    document.getElementById('btnUsaCopertina').addEventListener('click', function() {
+        galleriaMode = 'copertina';
+        this.classList.add('active');
+        document.getElementById('btnInserisciContenuto').classList.remove('active');
+    });
+
+    document.getElementById('btnInserisciContenuto').addEventListener('click', function() {
+        galleriaMode = 'contenuto';
+        this.classList.add('active');
+        document.getElementById('btnUsaCopertina').classList.remove('active');
+    });
+
+    // Carica immagini quando si apre la galleria
+    document.getElementById('galleriaModal').addEventListener('show.bs.modal', function() {
+        caricaGalleria();
+    });
+
+    function caricaGalleria() {
+        const loading = document.getElementById('galleriaLoading');
+        const empty = document.getElementById('galleriaEmpty');
+        const grid = document.getElementById('galleriaGrid');
+
+        loading.style.display = 'block';
+        empty.style.display = 'none';
+        grid.style.display = 'none';
+
+        fetch('/api/immagini')
+            .then(response => response.json())
+            .then(data => {
+                loading.style.display = 'none';
+                immaginiCaricate = data;
+
+                if (data.length === 0) {
+                    empty.style.display = 'block';
+                } else {
+                    grid.innerHTML = '';
+                    data.forEach(img => {
+                        const col = document.createElement('div');
+                        col.className = 'col-6 col-md-4 col-lg-3';
+                        col.innerHTML = `
+                            <div class="card h-100 galleria-item" style="cursor: pointer;" data-filename="${img.filename}" data-url="${img.url}">
+                                <img src="${img.url}" class="card-img-top" alt="${img.filename}" style="height: 120px; object-fit: cover;">
+                                <div class="card-body p-2">
+                                    <small class="text-muted text-truncate d-block">${img.filename}</small>
+                                    <small class="text-muted">${formatFileSize(img.size)}</small>
+                                </div>
+                            </div>
+                        `;
+                        grid.appendChild(col);
+                    });
+                    grid.style.display = 'flex';
+
+                    // Aggiungi event listeners
+                    document.querySelectorAll('.galleria-item').forEach(item => {
+                        item.addEventListener('click', function() {
+                            selezionaImmagine(this.dataset.filename, this.dataset.url);
+                        });
+                    });
+                }
+            })
+            .catch(error => {
+                loading.style.display = 'none';
+                empty.innerHTML = '<i class="bi bi-exclamation-triangle text-danger" style="font-size: 3rem;"></i><p class="mt-2 text-danger">Errore nel caricamento</p>';
+                empty.style.display = 'block';
+            });
+    }
+
+    function formatFileSize(bytes) {
+        if (bytes < 1024) return bytes + ' B';
+        if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+        return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+    }
+
+    function selezionaImmagine(filename, url) {
+        if (galleriaMode === 'copertina') {
+            // Imposta come immagine di copertina
+            document.getElementById('immagineEsistente').value = filename;
+            document.getElementById('immagineInput').value = '';
+
+            // Mostra preview
+            const previewContainer = document.getElementById('previewContainer');
+            const imagePreview = document.getElementById('imagePreview');
+            imagePreview.src = url;
+            previewContainer.style.display = 'block';
+            previewContainer.querySelector('label').textContent = 'Immagine selezionata dalla galleria:';
+
+            // Chiudi modal
+            bootstrap.Modal.getInstance(document.getElementById('galleriaModal')).hide();
+
+        } else {
+            // Inserisci nel contenuto
+            const imgTag = `<img src="${url}" alt="Immagine" class="img-fluid my-2">`;
+            const start = editor.selectionStart;
+            const before = editor.value.substring(0, start);
+            const after = editor.value.substring(start);
+            editor.value = before + imgTag + after;
+
+            // Chiudi modal
+            bootstrap.Modal.getInstance(document.getElementById('galleriaModal')).hide();
+
+            // Focus sull'editor
+            editor.focus();
+        }
+    }
 </script>
 {% endblock %}
