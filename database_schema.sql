@@ -41,6 +41,17 @@ CREATE TABLE IF NOT EXISTS permessi (
     UNIQUE KEY unique_permesso (utente_id, menu_id)
 );
 
+-- Tabella categorie servizi
+CREATE TABLE IF NOT EXISTS categorie_servizi (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nome VARCHAR(150) NOT NULL,
+    descrizione VARCHAR(300),
+    icona VARCHAR(50) DEFAULT 'bi-folder',
+    ordine INT DEFAULT 0,
+    attivo BOOLEAN DEFAULT TRUE,
+    data_creazione DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Tabella servizi
 CREATE TABLE IF NOT EXISTS servizi (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -54,7 +65,9 @@ CREATE TABLE IF NOT EXISTS servizi (
     attivo BOOLEAN DEFAULT TRUE,
     in_evidenza BOOLEAN DEFAULT FALSE,
     ordine INT DEFAULT 0,
-    data_creazione DATETIME DEFAULT CURRENT_TIMESTAMP
+    categoria_id INT NULL,
+    data_creazione DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (categoria_id) REFERENCES categorie_servizi(id) ON DELETE SET NULL
 );
 
 -- Tabella news
@@ -83,7 +96,8 @@ INSERT INTO menu (nome, icona, url, ordine, attivo) VALUES
 ('Utenti', 'bi-people', '/admin/utenti', 1, TRUE),
 ('Gestione Menu', 'bi-list-ul', '/admin/menu', 2, TRUE),
 ('Servizi', 'bi-briefcase', '/admin/servizi', 3, TRUE),
-('News', 'bi-newspaper', '/admin/news', 4, TRUE);
+('Categorie Servizi', 'bi-folder', '/admin/categorie-servizi', 4, TRUE),
+('News', 'bi-newspaper', '/admin/news', 5, TRUE);
 
 -- NOTA: L'utente admin viene creato automaticamente da app.py con password: admin123
 -- Gli amministratori vedono tutte le voci di menu indipendentemente dai permessi

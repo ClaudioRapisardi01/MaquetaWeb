@@ -66,12 +66,12 @@
                         </li>
                         <li><hr class="dropdown-divider"></li>
                         <li>
-                            <a class="dropdown-item" href="#">
+                            <a class="dropdown-item" href="{{ url_for('profilo') }}">
                                 <i class="bi bi-person me-2"></i>Il mio profilo
                             </a>
                         </li>
                         <li>
-                            <a class="dropdown-item" href="#">
+                            <a class="dropdown-item" href="{{ url_for('profilo') }}">
                                 <i class="bi bi-gear me-2"></i>Impostazioni
                             </a>
                         </li>
@@ -100,6 +100,14 @@
                 </a>
             </li>
             {% endfor %}
+
+            <!-- Separatore -->
+            <li class="sidebar-item" style="border-top: 1px solid rgba(255,255,255,0.08); margin-top: 0.5rem; padding-top: 0.5rem;">
+                <a href="{{ url_for('file_manager') }}" class="sidebar-link {% if request.path.startswith('/file-manager') %}active{% endif %}">
+                    <i class="bi bi-folder2-open"></i>
+                    <span>I Miei File</span>
+                </a>
+            </li>
         </ul>
 
         <!-- Sidebar Footer -->

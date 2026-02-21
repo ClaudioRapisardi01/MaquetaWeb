@@ -297,10 +297,93 @@ class Permesso:
         conn.close()
 
 
+class CategoriaServizio:
+    def __init__(self, id=None, nome=None, descrizione=None, icona='bi-folder',
+                 ordine=0, attivo=True, data_creazione=None):
+        self.id = id
+        self.nome = nome
+        self.descrizione = descrizione
+        self.icona = icona
+        self.ordine = ordine
+        self.attivo = attivo
+        self.data_creazione = data_creazione
+
+    @staticmethod
+    def get_by_id(categoria_id):
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('SELECT * FROM categorie_servizi WHERE id = %s', (categoria_id,))
+        row = cursor.fetchone()
+        cursor.close()
+        conn.close()
+        if row:
+            return CategoriaServizio(**row)
+        return None
+
+    @staticmethod
+    def get_all():
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('SELECT * FROM categorie_servizi ORDER BY ordine, id')
+        rows = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        return [CategoriaServizio(**row) for row in rows]
+
+    @staticmethod
+    def get_all_active():
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('SELECT * FROM categorie_servizi WHERE attivo = TRUE ORDER BY ordine, id')
+        rows = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        return [CategoriaServizio(**row) for row in rows]
+
+    def count_servizi(self):
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('SELECT COUNT(*) as cnt FROM servizi WHERE categoria_id = %s', (self.id,))
+        row = cursor.fetchone()
+        cursor.close()
+        conn.close()
+        return row['cnt'] if row else 0
+
+    def save(self):
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        if self.id:
+            cursor.execute('''
+                UPDATE categorie_servizi SET nome=%s, descrizione=%s, icona=%s,
+                ordine=%s, attivo=%s
+                WHERE id=%s
+            ''', (self.nome, self.descrizione, self.icona,
+                  self.ordine, self.attivo, self.id))
+        else:
+            cursor.execute('''
+                INSERT INTO categorie_servizi (nome, descrizione, icona, ordine, attivo)
+                VALUES (%s, %s, %s, %s, %s)
+            ''', (self.nome, self.descrizione, self.icona,
+                  self.ordine, self.attivo))
+            self.id = cursor.lastrowid
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+    def delete(self):
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('DELETE FROM categorie_servizi WHERE id = %s', (self.id,))
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+
 class Servizio:
     def __init__(self, id=None, nome=None, descrizione=None, descrizione_breve=None,
                  foto=None, icona='bi-gear', prezzo=None, durata=None,
-                 attivo=True, in_evidenza=False, ordine=0, data_creazione=None):
+                 attivo=True, in_evidenza=False, ordine=0, categoria_id=None,
+                 data_creazione=None):
         self.id = id
         self.nome = nome
         self.descrizione = descrizione
@@ -312,6 +395,7 @@ class Servizio:
         self.attivo = attivo
         self.in_evidenza = in_evidenza
         self.ordine = ordine
+        self.categoria_id = categoria_id
         self.data_creazione = data_creazione
 
     @staticmethod
@@ -356,24 +440,40 @@ class Servizio:
         conn.close()
         return [Servizio(**row) for row in rows]
 
+    @staticmethod
+    def get_by_categoria(categoria_id):
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('SELECT * FROM servizi WHERE categoria_id = %s ORDER BY ordine, id', (categoria_id,))
+        rows = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        return [Servizio(**row) for row in rows]
+
+    def get_categoria_nome(self):
+        if not self.categoria_id:
+            return None
+        cat = CategoriaServizio.get_by_id(self.categoria_id)
+        return cat.nome if cat else None
+
     def save(self):
         conn = get_db_connection()
         cursor = conn.cursor()
         if self.id:
             cursor.execute('''
                 UPDATE servizi SET nome=%s, descrizione=%s, descrizione_breve=%s,
-                foto=%s, icona=%s, prezzo=%s, durata=%s, attivo=%s, in_evidenza=%s, ordine=%s
+                foto=%s, icona=%s, prezzo=%s, durata=%s, attivo=%s, in_evidenza=%s, ordine=%s, categoria_id=%s
                 WHERE id=%s
             ''', (self.nome, self.descrizione, self.descrizione_breve,
                   self.foto, self.icona, self.prezzo, self.durata,
-                  self.attivo, self.in_evidenza, self.ordine, self.id))
+                  self.attivo, self.in_evidenza, self.ordine, self.categoria_id, self.id))
         else:
             cursor.execute('''
-                INSERT INTO servizi (nome, descrizione, descrizione_breve, foto, icona, prezzo, durata, attivo, in_evidenza, ordine)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                INSERT INTO servizi (nome, descrizione, descrizione_breve, foto, icona, prezzo, durata, attivo, in_evidenza, ordine, categoria_id)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             ''', (self.nome, self.descrizione, self.descrizione_breve,
                   self.foto, self.icona, self.prezzo, self.durata,
-                  self.attivo, self.in_evidenza, self.ordine))
+                  self.attivo, self.in_evidenza, self.ordine, self.categoria_id))
             self.id = cursor.lastrowid
         conn.commit()
         cursor.close()

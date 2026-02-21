@@ -1,0 +1,233 @@
+{% extends "base.html" %}
+
+{% block title %}Categorie Servizi - Maqueta Web{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="page-header">
+    <div>
+        <h1><i class="bi bi-folder"></i>Categorie Servizi</h1>
+        <p class="text-muted mb-0 mt-1">Gestisci le categorie per organizzare i servizi</p>
+    </div>
+    <a href="{{ url_for('nuova_categoria_servizio') }}" class="btn btn-primary btn-lg">
+        <i class="bi bi-plus-circle"></i>
+        Nuova Categoria
+    </a>
+</div>
+
+<!-- Stats Row -->
+<div class="row mb-4">
+    <div class="col-md-6 mb-3 mb-md-0">
+        <div class="card border-0" style="background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);">
+            <div class="card-body py-3">
+                <div class="d-flex align-items-center">
+                    <div class="rounded-circle bg-white bg-opacity-25 p-3 me-3">
+                        <i class="bi bi-folder-fill text-white" style="font-size: 1.5rem;"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-white mb-0">{{ categorie|length }}</h3>
+                        <small class="text-white opacity-75">Categorie Totali</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card border-0" style="background: linear-gradient(135deg, var(--success) 0%, #059669 100%);">
+            <div class="card-body py-3">
+                <div class="d-flex align-items-center">
+                    <div class="rounded-circle bg-white bg-opacity-25 p-3 me-3">
+                        <i class="bi bi-check-circle-fill text-white" style="font-size: 1.5rem;"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-white mb-0">{{ categorie|selectattr('attivo')|list|length }}</h3>
+                        <small class="text-white opacity-75">Categorie Attive</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Categories Table -->
+<div class="card slide-up">
+    <div class="card-header d-flex align-items-center justify-content-between">
+        <div>
+            <i class="bi bi-table me-2"></i>
+            Lista Categorie
+        </div>
+        <div class="d-flex gap-2">
+            <div class="input-group" style="width: 250px;">
+                <span class="input-group-text bg-transparent border-end-0">
+                    <i class="bi bi-search text-muted"></i>
+                </span>
+                <input type="text" class="form-control border-start-0" id="searchInput" placeholder="Cerca categoria...">
+            </div>
+        </div>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0" id="categoriesTable">
+                <thead>
+                    <tr>
+                        <th class="d-none d-md-table-cell" style="width: 50px;">#</th>
+                        <th>Categoria</th>
+                        <th class="d-none d-lg-table-cell">Servizi</th>
+                        <th class="d-none d-md-table-cell">Stato</th>
+                        <th class="d-none d-lg-table-cell">Ordine</th>
+                        <th class="text-end" style="width: 100px;">Azioni</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for categoria in categorie %}
+                    <tr class="category-row">
+                        <td class="d-none d-md-table-cell">
+                            <span class="text-muted fw-semibold">{{ categoria.id }}</span>
+                        </td>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <div class="rounded-circle d-flex align-items-center justify-content-center me-3"
+                                     style="width: 45px; height: 45px; background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);">
+                                    <i class="{{ categoria.icona }} text-white" style="font-size: 1.2rem;"></i>
+                                </div>
+                                <div>
+                                    <div class="fw-semibold">{{ categoria.nome }}</div>
+                                    {% if categoria.descrizione %}
+                                    <div class="small text-muted text-truncate" style="max-width: 250px;">{{ categoria.descrizione }}</div>
+                                    {% endif %}
+                                    <!-- Info extra visibili solo su mobile -->
+                                    <div class="d-md-none mt-1">
+                                        {% if categoria.attivo %}
+                                        <span class="badge bg-success badge-sm">Attiva</span>
+                                        {% else %}
+                                        <span class="badge bg-danger badge-sm">Disattivata</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="d-none d-lg-table-cell">
+                            <span class="badge bg-info">
+                                <i class="bi bi-briefcase me-1"></i>{{ categoria.count_servizi() }}
+                            </span>
+                        </td>
+                        <td class="d-none d-md-table-cell">
+                            {% if categoria.attivo %}
+                            <span class="badge bg-success">
+                                <i class="bi bi-check-circle me-1"></i>Attiva
+                            </span>
+                            {% else %}
+                            <span class="badge bg-danger">
+                                <i class="bi bi-x-circle me-1"></i>Disattivata
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="d-none d-lg-table-cell">
+                            <span class="badge bg-secondary">{{ categoria.ordine }}</span>
+                        </td>
+                        <td>
+                            <div class="btn-group-actions justify-content-end">
+                                <a href="{{ url_for('modifica_categoria_servizio', id=categoria.id) }}"
+                                   class="btn btn-sm btn-outline-primary btn-icon"
+                                   data-bs-toggle="tooltip" title="Modifica">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <button type="button"
+                                        class="btn btn-sm btn-outline-danger btn-icon"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#deleteModal"
+                                        data-category-id="{{ categoria.id }}"
+                                        data-category-name="{{ categoria.nome }}"
+                                        data-category-count="{{ categoria.count_servizi() }}"
+                                        title="Elimina">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% if not categorie %}
+        <div class="empty-state py-5">
+            <i class="bi bi-folder"></i>
+            <h5>Nessuna categoria trovata</h5>
+            <p class="text-muted">Inizia creando la prima categoria per i servizi</p>
+            <a href="{{ url_for('nuova_categoria_servizio') }}" class="btn btn-primary">
+                <i class="bi bi-plus-circle me-1"></i>Crea Categoria
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Delete Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-0">
+                <h5 class="modal-title">
+                    <i class="bi bi-exclamation-triangle text-danger me-2"></i>
+                    Conferma Eliminazione
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-0">Sei sicuro di voler eliminare la categoria <strong id="deleteCategoryName"></strong>?</p>
+                <p class="text-muted small mt-2 mb-0" id="deleteCategoryWarning"></p>
+                <p class="text-muted small mt-1 mb-0">I servizi associati non verranno eliminati, ma perderanno la categoria.</p>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                <form id="deleteForm" method="POST" class="d-inline">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash me-1"></i>Elimina
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Search functionality
+    document.getElementById('searchInput').addEventListener('keyup', function() {
+        const searchTerm = this.value.toLowerCase();
+        const rows = document.querySelectorAll('.category-row');
+
+        rows.forEach(row => {
+            const text = row.textContent.toLowerCase();
+            row.style.display = text.includes(searchTerm) ? '' : 'none';
+        });
+    });
+
+    // Delete modal
+    const deleteModal = document.getElementById('deleteModal');
+    deleteModal.addEventListener('show.bs.modal', function(event) {
+        const button = event.relatedTarget;
+        const categoryId = button.getAttribute('data-category-id');
+        const categoryName = button.getAttribute('data-category-name');
+        const categoryCount = button.getAttribute('data-category-count');
+
+        document.getElementById('deleteCategoryName').textContent = categoryName;
+        document.getElementById('deleteForm').action = '/admin/categorie-servizi/' + categoryId + '/elimina';
+
+        const warning = document.getElementById('deleteCategoryWarning');
+        if (parseInt(categoryCount) > 0) {
+            warning.textContent = 'Questa categoria ha ' + categoryCount + ' servizio/i associato/i.';
+        } else {
+            warning.textContent = 'Questa azione non puo essere annullata.';
+        }
+    });
+
+    // Initialize tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function(tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+</script>
+{% endblock %}

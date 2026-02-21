@@ -1,9 +1,10 @@
-from flask import Flask, render_template, redirect, url_for, flash, request
+from flask import Flask, render_template, redirect, url_for, flash, request, send_file, jsonify
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from werkzeug.utils import secure_filename
+import nas_storage
 from config import Config
 from database import init_database, get_db_connection
-from models import Utente, Menu, Permesso, Servizio, News, Artista, MembroBand, Disco, Brano, Evento
+from models import Utente, Menu, Permesso, CategoriaServizio, Servizio, News, Artista, MembroBand, Disco, Brano, Evento
 import re
 import unicodedata
 from datetime import datetime
@@ -13,6 +14,10 @@ import uuid
 
 app = Flask(__name__)
 app.config.from_object(Config)
+
+# Rimuove il limite globale di upload (necessario per il file manager NAS senza limiti).
+# La validazione delle dimensioni per gli upload normali (immagini) avviene a livello applicativo.
+app.config['MAX_CONTENT_LENGTH'] = None
 
 # Assicura che la cartella uploads esista
 os.makedirs(Config.UPLOAD_FOLDER, exist_ok=True)
@@ -76,6 +81,39 @@ def admin_required(f):
             flash('Accesso negato. Solo gli amministratori possono accedere.', 'danger')
             return redirect(url_for('dashboard'))
         return f(*args, **kwargs)
+    return decorated_function
+
+
+# Mapping per route che non corrispondono direttamente a un URL di menu
+# es. /admin/membri/* fa parte della sezione Artisti
+ROUTE_MENU_MAPPING = {
+    '/admin/membri': '/admin/artisti',
+}
+
+
+def permesso_menu_required(f):
+    """Permette l'accesso se l'utente e admin o ha il permesso menu corrispondente."""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated:
+            return redirect(url_for('login'))
+        # Admin ha sempre accesso
+        if current_user.is_admin:
+            return f(*args, **kwargs)
+        # Per utenti normali, verifica se hanno un permesso menu che copre questo path
+        menu_visibili = current_user.get_menu_visibili()
+        menu_urls = [menu.url for menu in menu_visibili]
+        path = request.path
+        # Verifica corrispondenza diretta
+        for url in menu_urls:
+            if path == url or path.startswith(url + '/'):
+                return f(*args, **kwargs)
+        # Verifica route mappate (es. /admin/membri -> /admin/artisti)
+        for route_prefix, menu_url in ROUTE_MENU_MAPPING.items():
+            if path.startswith(route_prefix) and menu_url in menu_urls:
+                return f(*args, **kwargs)
+        flash('Accesso negato. Non hai i permessi per questa sezione.', 'danger')
+        return redirect(url_for('dashboard'))
     return decorated_function
 
 
@@ -159,6 +197,169 @@ def reset_password_self():
         return redirect(url_for('dashboard'))
 
     return render_template('cambia_password.html')
+
+
+@app.route('/profilo', methods=['GET', 'POST'])
+@login_required
+def profilo():
+    if request.method == 'POST':
+        nome = request.form.get('nome')
+        cognome = request.form.get('cognome')
+        email = request.form.get('email') or None
+
+        if not nome or not cognome:
+            flash('Nome e cognome sono obbligatori.', 'danger')
+            return render_template('profilo.html')
+
+        # Verifica che l'email non sia gia usata da un altro utente
+        if email:
+            existing = Utente.get_by_email(email)
+            if existing and existing.id != current_user.id:
+                flash('Questa email e gia utilizzata da un altro utente.', 'danger')
+                return render_template('profilo.html')
+
+        current_user.nome = nome
+        current_user.cognome = cognome
+        current_user.email = email
+        current_user.save()
+
+        flash('Profilo aggiornato con successo.', 'success')
+        return redirect(url_for('profilo'))
+
+    return render_template('profilo.html')
+
+
+# ============ ROUTES FILE MANAGER ============
+
+@app.route('/file-manager')
+@login_required
+def file_manager():
+    subpath = request.args.get('path', '')
+    try:
+        files = nas_storage.list_files(current_user.username, subpath)
+    except Exception as e:
+        flash(f'Errore di connessione al NAS: {str(e)}', 'danger')
+        files = []
+
+    # Costruisci breadcrumb
+    breadcrumb = []
+    if subpath:
+        parts = nas_storage._safe_subpath(subpath).split('/')
+        for i, part in enumerate(parts):
+            breadcrumb.append({
+                'name': part,
+                'path': '/'.join(parts[:i+1])
+            })
+
+    return render_template('file_manager.html', files=files, subpath=subpath,
+                           breadcrumb=breadcrumb, get_file_icon=nas_storage.get_file_icon)
+
+
+@app.route('/file-manager/upload', methods=['POST'])
+@login_required
+def file_manager_upload():
+    subpath = request.form.get('subpath', '')
+
+    if 'files' not in request.files:
+        flash('Nessun file selezionato.', 'warning')
+        return redirect(url_for('file_manager', path=subpath))
+
+    files = request.files.getlist('files')
+    uploaded = 0
+    errors = 0
+
+    for file in files:
+        if file and file.filename:
+            try:
+                success = nas_storage.upload_file(
+                    current_user.username, subpath, file.stream, file.filename
+                )
+                if success:
+                    uploaded += 1
+                else:
+                    errors += 1
+            except Exception:
+                errors += 1
+
+    if uploaded > 0:
+        flash(f'{uploaded} file caricato/i con successo.', 'success')
+    if errors > 0:
+        flash(f'{errors} file non caricato/i per errori.', 'danger')
+
+    return redirect(url_for('file_manager', path=subpath))
+
+
+@app.route('/file-manager/download')
+@login_required
+def file_manager_download():
+    subpath = request.args.get('path', '')
+    filename = request.args.get('file', '')
+
+    if not filename:
+        return 'File non specificato.', 400
+
+    buffer = nas_storage.download_file(current_user.username, subpath, filename)
+    if buffer is None:
+        return 'Errore durante il download del file.', 500
+
+    return send_file(buffer, download_name=filename, as_attachment=True, mimetype='application/octet-stream')
+
+
+@app.route('/file-manager/delete', methods=['POST'])
+@login_required
+def file_manager_delete():
+    subpath = request.form.get('subpath', '')
+    filename = request.form.get('filename', '')
+
+    if not filename:
+        flash('File non specificato.', 'danger')
+        return redirect(url_for('file_manager', path=subpath))
+
+    success = nas_storage.delete_file(current_user.username, subpath, filename)
+    if success:
+        flash(f'File "{filename}" eliminato con successo.', 'success')
+    else:
+        flash(f'Errore durante l\'eliminazione del file "{filename}".', 'danger')
+
+    return redirect(url_for('file_manager', path=subpath))
+
+
+@app.route('/file-manager/nuova-cartella', methods=['POST'])
+@login_required
+def file_manager_nuova_cartella():
+    subpath = request.form.get('subpath', '')
+    folder_name = request.form.get('folder_name', '').strip()
+
+    if not folder_name:
+        flash('Nome cartella non valido.', 'danger')
+        return redirect(url_for('file_manager', path=subpath))
+
+    success = nas_storage.create_folder(current_user.username, subpath, folder_name)
+    if success:
+        flash(f'Cartella "{folder_name}" creata con successo.', 'success')
+    else:
+        flash(f'Errore durante la creazione della cartella.', 'danger')
+
+    return redirect(url_for('file_manager', path=subpath))
+
+
+@app.route('/file-manager/elimina-cartella', methods=['POST'])
+@login_required
+def file_manager_elimina_cartella():
+    subpath = request.form.get('subpath', '')
+    folder_name = request.form.get('folder_name', '')
+
+    if not folder_name:
+        flash('Cartella non specificata.', 'danger')
+        return redirect(url_for('file_manager', path=subpath))
+
+    success = nas_storage.delete_folder(current_user.username, subpath, folder_name)
+    if success:
+        flash(f'Cartella "{folder_name}" eliminata con successo.', 'success')
+    else:
+        flash('Errore: la cartella potrebbe non essere vuota o non esistere.', 'danger')
+
+    return redirect(url_for('file_manager', path=subpath))
 
 
 # ============ ROUTES DASHBOARD ============
@@ -387,15 +588,23 @@ def elimina_menu(id):
 
 @app.route('/admin/servizi')
 @login_required
-@admin_required
+@permesso_menu_required
 def lista_servizi():
-    servizi = Servizio.get_all()
-    return render_template('admin/servizi.html', servizi=servizi)
+    categoria_filtro = request.args.get('categoria', type=int)
+    if categoria_filtro:
+        servizi = Servizio.get_by_categoria(categoria_filtro)
+    else:
+        servizi = Servizio.get_all()
+    categorie = CategoriaServizio.get_all()
+    # Mappa id -> nome categoria per visualizzazione rapida
+    categorie_map = {c.id: c.nome for c in categorie}
+    return render_template('admin/servizi.html', servizi=servizi, categorie=categorie,
+                           categorie_map=categorie_map, categoria_filtro=categoria_filtro)
 
 
 @app.route('/admin/servizi/nuovo', methods=['GET', 'POST'])
 @login_required
-@admin_required
+@permesso_menu_required
 def nuovo_servizio():
     if request.method == 'POST':
         nome = request.form.get('nome')
@@ -409,6 +618,9 @@ def nuovo_servizio():
         ordine = int(request.form.get('ordine') or 0)
         attivo = request.form.get('attivo') == 'on'
         in_evidenza = request.form.get('in_evidenza') == 'on'
+        categoria_id = request.form.get('categoria_id') or None
+        if categoria_id:
+            categoria_id = int(categoria_id)
 
         # Gestione upload immagine
         foto = None
@@ -429,19 +641,21 @@ def nuovo_servizio():
             durata=durata,
             ordine=ordine,
             attivo=attivo,
-            in_evidenza=in_evidenza
+            in_evidenza=in_evidenza,
+            categoria_id=categoria_id
         )
         servizio.save()
 
         flash('Servizio creato con successo.', 'success')
         return redirect(url_for('lista_servizi'))
 
-    return render_template('admin/servizio_form.html')
+    categorie = CategoriaServizio.get_all_active()
+    return render_template('admin/servizio_form.html', categorie=categorie)
 
 
 @app.route('/admin/servizi/<int:id>/modifica', methods=['GET', 'POST'])
 @login_required
-@admin_required
+@permesso_menu_required
 def modifica_servizio(id):
     servizio = Servizio.get_by_id(id)
     if not servizio:
@@ -462,6 +676,11 @@ def modifica_servizio(id):
         servizio.ordine = int(request.form.get('ordine') or 0)
         servizio.attivo = request.form.get('attivo') == 'on'
         servizio.in_evidenza = request.form.get('in_evidenza') == 'on'
+        categoria_id = request.form.get('categoria_id') or None
+        if categoria_id:
+            servizio.categoria_id = int(categoria_id)
+        else:
+            servizio.categoria_id = None
 
         # Gestione upload immagine
         if 'foto' in request.files:
@@ -485,12 +704,13 @@ def modifica_servizio(id):
         flash('Servizio modificato con successo.', 'success')
         return redirect(url_for('lista_servizi'))
 
-    return render_template('admin/servizio_form.html', servizio=servizio)
+    categorie = CategoriaServizio.get_all_active()
+    return render_template('admin/servizio_form.html', servizio=servizio, categorie=categorie)
 
 
 @app.route('/admin/servizi/<int:id>/elimina', methods=['POST'])
 @login_required
-@admin_required
+@permesso_menu_required
 def elimina_servizio(id):
     servizio = Servizio.get_by_id(id)
     if not servizio:
@@ -505,11 +725,85 @@ def elimina_servizio(id):
     return redirect(url_for('lista_servizi'))
 
 
+# ============ ROUTES ADMIN CATEGORIE SERVIZI ============
+
+@app.route('/admin/categorie-servizi')
+@login_required
+@permesso_menu_required
+def lista_categorie_servizi():
+    categorie = CategoriaServizio.get_all()
+    return render_template('admin/categorie_servizi.html', categorie=categorie)
+
+
+@app.route('/admin/categorie-servizi/nuova', methods=['GET', 'POST'])
+@login_required
+@permesso_menu_required
+def nuova_categoria_servizio():
+    if request.method == 'POST':
+        nome = request.form.get('nome')
+        descrizione = request.form.get('descrizione') or None
+        icona = request.form.get('icona') or 'bi-folder'
+        ordine = int(request.form.get('ordine') or 0)
+        attivo = request.form.get('attivo') == 'on'
+
+        categoria = CategoriaServizio(
+            nome=nome,
+            descrizione=descrizione,
+            icona=icona,
+            ordine=ordine,
+            attivo=attivo
+        )
+        categoria.save()
+
+        flash('Categoria creata con successo.', 'success')
+        return redirect(url_for('lista_categorie_servizi'))
+
+    return render_template('admin/categoria_servizio_form.html')
+
+
+@app.route('/admin/categorie-servizi/<int:id>/modifica', methods=['GET', 'POST'])
+@login_required
+@permesso_menu_required
+def modifica_categoria_servizio(id):
+    categoria = CategoriaServizio.get_by_id(id)
+    if not categoria:
+        flash('Categoria non trovata.', 'danger')
+        return redirect(url_for('lista_categorie_servizi'))
+
+    if request.method == 'POST':
+        categoria.nome = request.form.get('nome')
+        categoria.descrizione = request.form.get('descrizione') or None
+        categoria.icona = request.form.get('icona') or 'bi-folder'
+        categoria.ordine = int(request.form.get('ordine') or 0)
+        categoria.attivo = request.form.get('attivo') == 'on'
+
+        categoria.save()
+
+        flash('Categoria modificata con successo.', 'success')
+        return redirect(url_for('lista_categorie_servizi'))
+
+    return render_template('admin/categoria_servizio_form.html', categoria=categoria)
+
+
+@app.route('/admin/categorie-servizi/<int:id>/elimina', methods=['POST'])
+@login_required
+@permesso_menu_required
+def elimina_categoria_servizio(id):
+    categoria = CategoriaServizio.get_by_id(id)
+    if not categoria:
+        flash('Categoria non trovata.', 'danger')
+        return redirect(url_for('lista_categorie_servizi'))
+
+    categoria.delete()
+    flash('Categoria eliminata con successo. I servizi associati non hanno piu una categoria.', 'success')
+    return redirect(url_for('lista_categorie_servizi'))
+
+
 # ============ ROUTES ADMIN NEWS ============
 
 @app.route('/admin/news')
 @login_required
-@admin_required
+@permesso_menu_required
 def lista_news():
     news_list = News.get_all()
     return render_template('admin/news.html', news_list=news_list)
@@ -517,7 +811,7 @@ def lista_news():
 
 @app.route('/admin/news/nuovo', methods=['GET', 'POST'])
 @login_required
-@admin_required
+@permesso_menu_required
 def nuova_news():
     if request.method == 'POST':
         titolo = request.form.get('titolo')
@@ -580,7 +874,7 @@ def nuova_news():
 
 @app.route('/admin/news/<int:id>/modifica', methods=['GET', 'POST'])
 @login_required
-@admin_required
+@permesso_menu_required
 def modifica_news(id):
     news = News.get_by_id(id)
     if not news:
@@ -645,7 +939,7 @@ def modifica_news(id):
 
 @app.route('/admin/news/<int:id>/elimina', methods=['POST'])
 @login_required
-@admin_required
+@permesso_menu_required
 def elimina_news(id):
     news = News.get_by_id(id)
     if not news:
@@ -664,7 +958,7 @@ def elimina_news(id):
 
 @app.route('/admin/artisti')
 @login_required
-@admin_required
+@permesso_menu_required
 def lista_artisti():
     artisti = Artista.get_all()
     return render_template('admin/artisti.html', artisti=artisti)
@@ -672,7 +966,7 @@ def lista_artisti():
 
 @app.route('/admin/artisti/nuovo', methods=['GET', 'POST'])
 @login_required
-@admin_required
+@permesso_menu_required
 def nuovo_artista():
     if request.method == 'POST':
         nome = request.form.get('nome')
@@ -759,7 +1053,7 @@ def nuovo_artista():
 
 @app.route('/admin/artisti/<int:id>/modifica', methods=['GET', 'POST'])
 @login_required
-@admin_required
+@permesso_menu_required
 def modifica_artista(id):
     artista = Artista.get_by_id(id)
     if not artista:
@@ -845,7 +1139,7 @@ def modifica_artista(id):
 
 @app.route('/admin/artisti/<int:id>/elimina', methods=['POST'])
 @login_required
-@admin_required
+@permesso_menu_required
 def elimina_artista(id):
     artista = Artista.get_by_id(id)
     if not artista:
@@ -865,7 +1159,7 @@ def elimina_artista(id):
 
 @app.route('/admin/artisti/<int:artista_id>/membri/nuovo', methods=['GET', 'POST'])
 @login_required
-@admin_required
+@permesso_menu_required
 def nuovo_membro(artista_id):
     artista = Artista.get_by_id(artista_id)
     if not artista:
@@ -925,7 +1219,7 @@ def nuovo_membro(artista_id):
 
 @app.route('/admin/membri/<int:id>/modifica', methods=['GET', 'POST'])
 @login_required
-@admin_required
+@permesso_menu_required
 def modifica_membro(id):
     membro = MembroBand.get_by_id(id)
     if not membro:
@@ -974,7 +1268,7 @@ def modifica_membro(id):
 
 @app.route('/admin/membri/<int:id>/elimina', methods=['POST'])
 @login_required
-@admin_required
+@permesso_menu_required
 def elimina_membro(id):
     membro = MembroBand.get_by_id(id)
     if not membro:
@@ -993,7 +1287,7 @@ def elimina_membro(id):
 
 @app.route('/admin/dischi')
 @login_required
-@admin_required
+@permesso_menu_required
 def lista_dischi():
     dischi = Disco.get_all()
     return render_template('admin/dischi.html', dischi=dischi)
@@ -1001,7 +1295,7 @@ def lista_dischi():
 
 @app.route('/admin/dischi/nuovo', methods=['GET', 'POST'])
 @login_required
-@admin_required
+@permesso_menu_required
 def nuovo_disco():
     artisti = Artista.get_all_active()
 
@@ -1083,7 +1377,7 @@ def nuovo_disco():
 
 @app.route('/admin/dischi/<int:id>/modifica', methods=['GET', 'POST'])
 @login_required
-@admin_required
+@permesso_menu_required
 def modifica_disco(id):
     disco = Disco.get_by_id(id)
     if not disco:
@@ -1154,7 +1448,7 @@ def modifica_disco(id):
 
 @app.route('/admin/dischi/<int:id>/elimina', methods=['POST'])
 @login_required
-@admin_required
+@permesso_menu_required
 def elimina_disco(id):
     disco = Disco.get_by_id(id)
     if not disco:
@@ -1172,7 +1466,7 @@ def elimina_disco(id):
 
 @app.route('/admin/brani')
 @login_required
-@admin_required
+@permesso_menu_required
 def lista_brani():
     brani = Brano.get_all()
     return render_template('admin/brani.html', brani=brani)
@@ -1180,7 +1474,7 @@ def lista_brani():
 
 @app.route('/admin/brani/nuovo', methods=['GET', 'POST'])
 @login_required
-@admin_required
+@permesso_menu_required
 def nuovo_brano():
     artisti = Artista.get_all_active()
     dischi = Disco.get_all()
@@ -1265,7 +1559,7 @@ def nuovo_brano():
 
 @app.route('/admin/brani/<int:id>/modifica', methods=['GET', 'POST'])
 @login_required
-@admin_required
+@permesso_menu_required
 def modifica_brano(id):
     brano = Brano.get_by_id(id)
     if not brano:
@@ -1326,7 +1620,7 @@ def modifica_brano(id):
 
 @app.route('/admin/brani/<int:id>/elimina', methods=['POST'])
 @login_required
-@admin_required
+@permesso_menu_required
 def elimina_brano(id):
     brano = Brano.get_by_id(id)
     if not brano:
@@ -1342,7 +1636,7 @@ def elimina_brano(id):
 
 @app.route('/admin/eventi')
 @login_required
-@admin_required
+@permesso_menu_required
 def lista_eventi():
     eventi = Evento.get_all()
     return render_template('admin/eventi.html', eventi=eventi)
@@ -1350,7 +1644,7 @@ def lista_eventi():
 
 @app.route('/admin/eventi/nuovo', methods=['GET', 'POST'])
 @login_required
-@admin_required
+@permesso_menu_required
 def nuovo_evento():
     artisti = Artista.get_all_active()
 
@@ -1440,7 +1734,7 @@ def nuovo_evento():
 
 @app.route('/admin/eventi/<int:id>/modifica', methods=['GET', 'POST'])
 @login_required
-@admin_required
+@permesso_menu_required
 def modifica_evento(id):
     evento = Evento.get_by_id(id)
     if not evento:
@@ -1515,7 +1809,7 @@ def modifica_evento(id):
 
 @app.route('/admin/eventi/<int:id>/elimina', methods=['POST'])
 @login_required
-@admin_required
+@permesso_menu_required
 def elimina_evento(id):
     evento = Evento.get_by_id(id)
     if not evento:
@@ -1560,7 +1854,10 @@ def init_db():
         menu_servizi = Menu(nome='Servizi', icona='bi-briefcase', url='/admin/servizi', ordine=3)
         menu_servizi.save()
 
-        menu_news = Menu(nome='News', icona='bi-newspaper', url='/admin/news', ordine=4)
+        menu_cat_servizi = Menu(nome='Categorie Servizi', icona='bi-folder', url='/admin/categorie-servizi', ordine=4)
+        menu_cat_servizi.save()
+
+        menu_news = Menu(nome='News', icona='bi-newspaper', url='/admin/news', ordine=5)
         menu_news.save()
 
         # Menu sezione artisti/etichetta

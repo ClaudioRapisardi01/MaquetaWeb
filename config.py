@@ -13,3 +13,10 @@ class Config:
     UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'uploads')
     MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16 MB max
     ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+
+    # Configurazione NAS (SFTP)
+    NAS_HOST = os.environ.get('NAS_HOST') or '93.49.81.244'
+    NAS_PORT = int(os.environ.get('NAS_PORT') or 22)
+    NAS_USER = os.environ.get('NAS_USER') or 'Blackdog'
+    NAS_PASSWORD = os.environ.get('NAS_PASSWORD') or '$MqtServ2025'
+    NAS_BASE_PATH = os.environ.get('NAS_BASE_PATH') or 'applicazione/MaquetaFiles'

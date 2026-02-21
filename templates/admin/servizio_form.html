@@ -43,13 +43,27 @@
                                 value="{{ servizio.nome if servizio else '' }}"
                                 placeholder="Es. Consulenza Strategica" required>
                         </div>
-                        <div class="col-12">
+                        <div class="col-md-8">
                             <label class="form-label">Descrizione Breve</label>
                             <input type="text" class="form-control" name="descrizione_breve"
                                 value="{{ servizio.descrizione_breve if servizio and servizio.descrizione_breve else '' }}"
                                 placeholder="Breve descrizione per anteprima (max 300 caratteri)"
                                 maxlength="300">
                             <small class="text-muted">Questa descrizione viene mostrata nelle liste e anteprime</small>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Categoria</label>
+                            <select class="form-select" name="categoria_id">
+                                <option value="">Nessuna categoria</option>
+                                {% if categorie %}
+                                {% for cat in categorie %}
+                                <option value="{{ cat.id }}" {{ 'selected' if servizio and servizio.categoria_id == cat.id else '' }}>
+                                    {{ cat.nome }}
+                                </option>
+                                {% endfor %}
+                                {% endif %}
+                            </select>
+                            <small class="text-muted">Assegna il servizio a una categoria</small>
                         </div>
                         <div class="col-12">
                             <label class="form-label">Descrizione Completa</label>

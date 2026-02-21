@@ -59,6 +59,19 @@ def init_database():
         )
     ''')
 
+    # Tabella categorie servizi
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS categorie_servizi (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            nome VARCHAR(150) NOT NULL,
+            descrizione VARCHAR(300),
+            icona VARCHAR(50) DEFAULT 'bi-folder',
+            ordine INT DEFAULT 0,
+            attivo BOOLEAN DEFAULT TRUE,
+            data_creazione DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+
     # Tabella servizi
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS servizi (
@@ -73,7 +86,9 @@ def init_database():
             attivo BOOLEAN DEFAULT TRUE,
             in_evidenza BOOLEAN DEFAULT FALSE,
             ordine INT DEFAULT 0,
-            data_creazione DATETIME DEFAULT CURRENT_TIMESTAMP
+            categoria_id INT NULL,
+            data_creazione DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (categoria_id) REFERENCES categorie_servizi(id) ON DELETE SET NULL
         )
     ''')
 

@@ -1,0 +1,581 @@
+{% extends "base.html" %}
+
+{% block title %}I Miei File - Maqueta Web{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="page-header">
+    <div>
+        <h1><i class="bi bi-folder2-open"></i>I Miei File</h1>
+        <p class="text-muted mb-0 mt-1">Gestisci i tuoi file personali</p>
+    </div>
+    <div class="d-flex gap-2">
+        <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#newFolderModal">
+            <i class="bi bi-folder-plus"></i>
+            Nuova Cartella
+        </button>
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#uploadModal">
+            <i class="bi bi-cloud-upload"></i>
+            Carica File
+        </button>
+    </div>
+</div>
+
+<!-- Breadcrumb Navigation -->
+<div class="card mb-4">
+    <div class="card-body py-2">
+        <nav aria-label="breadcrumb" class="mb-0">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item">
+                    <a href="{{ url_for('file_manager') }}" class="text-decoration-none">
+                        <i class="bi bi-house-door me-1"></i>Home
+                    </a>
+                </li>
+                {% for crumb in breadcrumb %}
+                {% if loop.last %}
+                <li class="breadcrumb-item active">{{ crumb.name }}</li>
+                {% else %}
+                <li class="breadcrumb-item">
+                    <a href="{{ url_for('file_manager', path=crumb.path) }}" class="text-decoration-none">{{ crumb.name }}</a>
+                </li>
+                {% endif %}
+                {% endfor %}
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<!-- Files Table -->
+<div class="card slide-up">
+    <div class="card-header d-flex align-items-center justify-content-between">
+        <div>
+            <i class="bi bi-files me-2"></i>
+            {% if subpath %}
+                <span class="fw-semibold">{{ breadcrumb[-1].name if breadcrumb else 'File' }}</span>
+            {% else %}
+                La Mia Cartella
+            {% endif %}
+            <span class="badge bg-secondary ms-2">{{ files|length }} elementi</span>
+        </div>
+        <div class="d-flex gap-2">
+            <div class="input-group" style="width: 250px;">
+                <span class="input-group-text bg-transparent border-end-0">
+                    <i class="bi bi-search text-muted"></i>
+                </span>
+                <input type="text" class="form-control border-start-0" id="searchInput" placeholder="Cerca file...">
+            </div>
+        </div>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Nome</th>
+                        <th class="d-none d-md-table-cell" style="width: 120px;">Dimensione</th>
+                        <th class="d-none d-lg-table-cell" style="width: 180px;">Ultima modifica</th>
+                        <th class="text-end" style="width: 120px;">Azioni</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if subpath %}
+                    <!-- Torna indietro -->
+                    <tr>
+                        <td colspan="4">
+                            {% set parent_path = '/'.join(subpath.split('/')[:-1]) %}
+                            <a href="{{ url_for('file_manager', path=parent_path) }}" class="text-decoration-none d-flex align-items-center">
+                                <i class="bi bi-arrow-up-circle text-muted me-3" style="font-size: 1.5rem;"></i>
+                                <span class="text-muted fw-semibold">..</span>
+                            </a>
+                        </td>
+                    </tr>
+                    {% endif %}
+
+                    {% for file in files %}
+                    <tr class="file-row">
+                        <td>
+                            {% if file.is_dir %}
+                            <a href="{{ url_for('file_manager', path=(subpath + '/' + file.name if subpath else file.name)) }}"
+                               class="text-decoration-none d-flex align-items-center">
+                                <i class="bi bi-folder-fill text-warning me-3" style="font-size: 1.5rem;"></i>
+                                <div>
+                                    <span class="fw-semibold">{{ file.name }}</span>
+                                    <div class="d-md-none small text-muted">Cartella</div>
+                                </div>
+                            </a>
+                            {% else %}
+                            <div class="d-flex align-items-center">
+                                <i class="{{ get_file_icon(file.extension) }} text-primary me-3" style="font-size: 1.5rem;"></i>
+                                <div>
+                                    <span class="fw-semibold">{{ file.name }}</span>
+                                    <div class="d-md-none small text-muted">{{ file.size_human }}</div>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </td>
+                        <td class="d-none d-md-table-cell text-muted">
+                            {{ file.size_human }}
+                        </td>
+                        <td class="d-none d-lg-table-cell text-muted">
+                            {{ file.modified.strftime('%d/%m/%Y %H:%M') }}
+                        </td>
+                        <td>
+                            <div class="btn-group-actions justify-content-end">
+                                {% if file.is_dir %}
+                                <a href="{{ url_for('file_manager', path=(subpath + '/' + file.name if subpath else file.name)) }}"
+                                   class="btn btn-sm btn-outline-primary btn-icon"
+                                   data-bs-toggle="tooltip" title="Apri">
+                                    <i class="bi bi-folder2-open"></i>
+                                </a>
+                                <button type="button"
+                                        class="btn btn-sm btn-outline-danger btn-icon"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#deleteFolderModal"
+                                        data-folder-name="{{ file.name }}"
+                                        title="Elimina cartella">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                                {% else %}
+                                <a href="#" onclick="downloadFile('{{ url_for('file_manager_download', path=subpath, file=file.name) }}', this); return false;"
+                                   class="btn btn-sm btn-outline-success btn-icon"
+                                   data-bs-toggle="tooltip" title="Scarica">
+                                    <i class="bi bi-download"></i>
+                                </a>
+                                <button type="button"
+                                        class="btn btn-sm btn-outline-danger btn-icon"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#deleteFileModal"
+                                        data-file-name="{{ file.name }}"
+                                        data-file-size="{{ file.size_human }}"
+                                        title="Elimina">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% if not files and not subpath %}
+        <div class="empty-state py-5">
+            <i class="bi bi-folder2-open"></i>
+            <h5>La tua cartella e vuota</h5>
+            <p class="text-muted">Inizia caricando i tuoi primi file</p>
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#uploadModal">
+                <i class="bi bi-cloud-upload me-1"></i>Carica File
+            </button>
+        </div>
+        {% elif not files and subpath %}
+        <div class="empty-state py-5">
+            <i class="bi bi-folder2-open"></i>
+            <h5>Cartella vuota</h5>
+            <p class="text-muted">Questa cartella non contiene file</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Upload Modal -->
+<div class="modal fade" id="uploadModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-0">
+                <h5 class="modal-title">
+                    <i class="bi bi-cloud-upload text-primary me-2"></i>
+                    Carica File
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('file_manager_upload') }}" enctype="multipart/form-data" id="uploadForm">
+                <div class="modal-body">
+                    <input type="hidden" name="subpath" value="{{ subpath }}">
+
+                    <!-- Drop Zone -->
+                    <div id="dropZone" class="border-2 border-dashed rounded p-5 text-center"
+                         style="border: 2px dashed var(--gray-300); cursor: pointer; transition: all 0.2s;">
+                        <i class="bi bi-cloud-arrow-up" style="font-size: 3rem; color: var(--gray-400);"></i>
+                        <p class="mt-3 mb-1 fw-semibold">Trascina i file qui oppure clicca per selezionare</p>
+                        <p class="text-muted small mb-0">Qualsiasi tipo di file, senza limiti di dimensione</p>
+                    </div>
+                    <input type="file" name="files" id="fileInput" multiple style="display: none;">
+
+                    <!-- Lista file selezionati -->
+                    <div id="fileList" class="mt-3" style="display: none;">
+                        <label class="form-label fw-semibold">File selezionati:</label>
+                        <div id="fileListItems"></div>
+                    </div>
+
+                    <!-- Barra di progresso -->
+                    <div id="uploadProgress" class="mt-3" style="display: none;">
+                        <div class="progress" style="height: 24px;">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated" id="progressBar"
+                                 role="progressbar" style="width: 0%;">0%</div>
+                        </div>
+                        <div class="d-flex justify-content-between mt-2">
+                            <small class="text-muted" id="uploadStatus">Preparazione...</small>
+                            <small class="fw-semibold" id="uploadSpeed"></small>
+                        </div>
+                        <div class="d-flex justify-content-between mt-1">
+                            <small class="text-muted" id="uploadTransferred"></small>
+                            <small class="text-muted" id="uploadEta"></small>
+                        </div>
+                    </div>
+
+                    <!-- Risultato upload -->
+                    <div id="uploadResult" class="mt-3" style="display: none;">
+                        <div class="alert mb-0" id="uploadResultAlert"></div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                    <button type="submit" class="btn btn-primary" id="uploadBtn" disabled>
+                        <i class="bi bi-cloud-upload me-1"></i>Carica
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- New Folder Modal -->
+<div class="modal fade" id="newFolderModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-0">
+                <h5 class="modal-title">
+                    <i class="bi bi-folder-plus text-primary me-2"></i>
+                    Nuova Cartella
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('file_manager_nuova_cartella') }}">
+                <div class="modal-body">
+                    <input type="hidden" name="subpath" value="{{ subpath }}">
+                    <label class="form-label">Nome della cartella</label>
+                    <input type="text" class="form-control" name="folder_name"
+                           placeholder="Es. Documenti, Foto, Progetti..." required>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-folder-plus me-1"></i>Crea Cartella
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Delete File Modal -->
+<div class="modal fade" id="deleteFileModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-0">
+                <h5 class="modal-title">
+                    <i class="bi bi-exclamation-triangle text-danger me-2"></i>
+                    Elimina File
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-1">Sei sicuro di voler eliminare il file:</p>
+                <p class="fw-semibold mb-0" id="deleteFileName"></p>
+                <p class="text-muted small mt-1 mb-0">Dimensione: <span id="deleteFileSize"></span></p>
+                <p class="text-muted small mt-2 mb-0">Questa azione non puo essere annullata.</p>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                <form method="POST" action="{{ url_for('file_manager_delete') }}" id="deleteFileForm">
+                    <input type="hidden" name="subpath" value="{{ subpath }}">
+                    <input type="hidden" name="filename" id="deleteFileInput">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash me-1"></i>Elimina
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Folder Modal -->
+<div class="modal fade" id="deleteFolderModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-0">
+                <h5 class="modal-title">
+                    <i class="bi bi-exclamation-triangle text-danger me-2"></i>
+                    Elimina Cartella
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-1">Sei sicuro di voler eliminare la cartella:</p>
+                <p class="fw-semibold mb-0" id="deleteFolderName"></p>
+                <p class="text-muted small mt-2 mb-0">La cartella deve essere vuota per poter essere eliminata.</p>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                <form method="POST" action="{{ url_for('file_manager_elimina_cartella') }}" id="deleteFolderForm">
+                    <input type="hidden" name="subpath" value="{{ subpath }}">
+                    <input type="hidden" name="folder_name" id="deleteFolderInput">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash me-1"></i>Elimina
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Search functionality
+    document.getElementById('searchInput').addEventListener('keyup', function() {
+        const searchTerm = this.value.toLowerCase();
+        const rows = document.querySelectorAll('.file-row');
+        rows.forEach(row => {
+            const text = row.textContent.toLowerCase();
+            row.style.display = text.includes(searchTerm) ? '' : 'none';
+        });
+    });
+
+    // Drop Zone
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+    const fileList = document.getElementById('fileList');
+    const fileListItems = document.getElementById('fileListItems');
+    const uploadBtn = document.getElementById('uploadBtn');
+
+    dropZone.addEventListener('click', () => fileInput.click());
+
+    dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropZone.style.borderColor = 'var(--primary)';
+        dropZone.style.background = 'rgba(var(--primary-rgb, 79, 70, 229), 0.05)';
+    });
+
+    dropZone.addEventListener('dragleave', () => {
+        dropZone.style.borderColor = 'var(--gray-300)';
+        dropZone.style.background = '';
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.style.borderColor = 'var(--gray-300)';
+        dropZone.style.background = '';
+        fileInput.files = e.dataTransfer.files;
+        updateFileList();
+    });
+
+    fileInput.addEventListener('change', updateFileList);
+
+    function updateFileList() {
+        const files = fileInput.files;
+        if (files.length === 0) {
+            fileList.style.display = 'none';
+            uploadBtn.disabled = true;
+            return;
+        }
+
+        fileList.style.display = 'block';
+        uploadBtn.disabled = false;
+        fileListItems.innerHTML = '';
+
+        for (let i = 0; i < files.length; i++) {
+            const file = files[i];
+            const size = formatSize(file.size);
+            const item = document.createElement('div');
+            item.className = 'd-flex align-items-center justify-content-between p-2 border rounded mb-1';
+            item.innerHTML = `
+                <div class="d-flex align-items-center">
+                    <i class="bi bi-file-earmark me-2 text-primary"></i>
+                    <span class="small">${file.name}</span>
+                </div>
+                <span class="badge bg-secondary">${size}</span>
+            `;
+            fileListItems.appendChild(item);
+        }
+    }
+
+    function formatSize(bytes) {
+        if (bytes === 0) return '0 B';
+        const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+        let i = 0;
+        let size = bytes;
+        while (size >= 1024 && i < units.length - 1) {
+            size /= 1024;
+            i++;
+        }
+        return i === 0 ? size + ' B' : size.toFixed(1) + ' ' + units[i];
+    }
+
+    // Upload con XHR per tracciamento progresso e velocita
+    document.getElementById('uploadForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        const formData = new FormData(this);
+        const files = fileInput.files;
+        if (files.length === 0) return;
+
+        // Calcola dimensione totale
+        let totalSize = 0;
+        for (let i = 0; i < files.length; i++) totalSize += files[i].size;
+
+        const progressDiv = document.getElementById('uploadProgress');
+        const progressBar = document.getElementById('progressBar');
+        const statusEl = document.getElementById('uploadStatus');
+        const speedEl = document.getElementById('uploadSpeed');
+        const transferredEl = document.getElementById('uploadTransferred');
+        const etaEl = document.getElementById('uploadEta');
+        const resultDiv = document.getElementById('uploadResult');
+        const resultAlert = document.getElementById('uploadResultAlert');
+
+        progressDiv.style.display = 'block';
+        resultDiv.style.display = 'none';
+        uploadBtn.disabled = true;
+        uploadBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Caricamento...';
+
+        const startTime = Date.now();
+        let lastLoaded = 0;
+        let lastTime = startTime;
+
+        const xhr = new XMLHttpRequest();
+
+        let uploadToServerDone = false;
+
+        xhr.upload.addEventListener('progress', function(e) {
+            if (!e.lengthComputable) return;
+
+            const now = Date.now();
+            const percent = Math.round((e.loaded / e.total) * 100);
+            const elapsed = (now - startTime) / 1000;
+
+            // Velocita istantanea (media mobile sugli ultimi 500ms)
+            const timeDiff = (now - lastTime) / 1000;
+            let speed = 0;
+            if (timeDiff > 0.3) {
+                speed = (e.loaded - lastLoaded) / timeDiff;
+                lastLoaded = e.loaded;
+                lastTime = now;
+            } else if (elapsed > 0) {
+                speed = e.loaded / elapsed;
+            }
+
+            // ETA
+            const remaining = e.total - e.loaded;
+            let etaText = '';
+            if (speed > 0) {
+                const etaSec = remaining / speed;
+                if (etaSec < 60) {
+                    etaText = Math.round(etaSec) + 's rimanenti';
+                } else if (etaSec < 3600) {
+                    etaText = Math.round(etaSec / 60) + 'min rimanenti';
+                } else {
+                    etaText = Math.round(etaSec / 3600) + 'h rimanenti';
+                }
+            }
+
+            progressBar.style.width = percent + '%';
+            progressBar.textContent = percent + '%';
+            statusEl.textContent = 'Caricamento in corso...';
+            speedEl.textContent = formatSize(speed) + '/s';
+            transferredEl.textContent = formatSize(e.loaded) + ' / ' + formatSize(e.total);
+            etaEl.textContent = percent < 100 ? etaText : '';
+        });
+
+        xhr.upload.addEventListener('load', function() {
+            // Upload browser→server completato, ora il server carica sul NAS
+            uploadToServerDone = true;
+            progressBar.style.width = '100%';
+            progressBar.textContent = '100%';
+            progressBar.classList.remove('progress-bar-striped');
+            progressBar.classList.add('progress-bar-striped', 'progress-bar-animated');
+            progressBar.className = 'progress-bar progress-bar-striped progress-bar-animated bg-warning';
+            statusEl.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Salvataggio sul NAS in corso...';
+            speedEl.textContent = '';
+            transferredEl.textContent = formatSize(totalSize) + ' inviati al server';
+            etaEl.textContent = 'Attendere...';
+        });
+
+        xhr.addEventListener('load', function() {
+            progressBar.className = 'progress-bar bg-success';
+            progressBar.classList.remove('progress-bar-striped', 'progress-bar-animated');
+            progressBar.style.width = '100%';
+            progressBar.textContent = '100%';
+
+            const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+            const avgSpeed = totalSize / ((Date.now() - startTime) / 1000);
+
+            statusEl.innerHTML = '<i class="bi bi-check-circle-fill text-success me-1"></i> Completato in ' + elapsed + 's';
+            speedEl.textContent = 'Media: ' + formatSize(avgSpeed) + '/s';
+            etaEl.textContent = '';
+
+            // Ricarica pagina dopo 1.5 secondi
+            setTimeout(() => window.location.reload(), 1500);
+        });
+
+        xhr.addEventListener('error', function() {
+            resultDiv.style.display = 'block';
+            resultAlert.className = 'alert alert-danger mb-0';
+            resultAlert.innerHTML = '<i class="bi bi-exclamation-circle me-2"></i>Errore di connessione durante il caricamento.';
+            uploadBtn.disabled = false;
+            uploadBtn.innerHTML = '<i class="bi bi-cloud-upload me-1"></i>Riprova';
+        });
+
+        xhr.open('POST', this.action);
+        xhr.send(formData);
+    });
+
+    // Delete File Modal
+    const deleteFileModal = document.getElementById('deleteFileModal');
+    deleteFileModal.addEventListener('show.bs.modal', function(event) {
+        const button = event.relatedTarget;
+        document.getElementById('deleteFileName').textContent = button.getAttribute('data-file-name');
+        document.getElementById('deleteFileSize').textContent = button.getAttribute('data-file-size');
+        document.getElementById('deleteFileInput').value = button.getAttribute('data-file-name');
+    });
+
+    // Delete Folder Modal
+    const deleteFolderModal = document.getElementById('deleteFolderModal');
+    deleteFolderModal.addEventListener('show.bs.modal', function(event) {
+        const button = event.relatedTarget;
+        document.getElementById('deleteFolderName').textContent = button.getAttribute('data-folder-name');
+        document.getElementById('deleteFolderInput').value = button.getAttribute('data-folder-name');
+    });
+
+    // Download file senza navigare via dalla pagina
+    function downloadFile(url, btn) {
+        const originalHtml = btn.innerHTML;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+        btn.classList.add('disabled');
+
+        // Usa un iframe nascosto per il download
+        let iframe = document.getElementById('downloadFrame');
+        if (!iframe) {
+            iframe = document.createElement('iframe');
+            iframe.id = 'downloadFrame';
+            iframe.style.display = 'none';
+            document.body.appendChild(iframe);
+        }
+        iframe.src = url;
+
+        // Ripristina il pulsante dopo un timeout
+        setTimeout(() => {
+            btn.innerHTML = originalHtml;
+            btn.classList.remove('disabled');
+        }, 5000);
+    }
+    // Esponi la funzione globalmente
+    window.downloadFile = downloadFile;
+
+    // Initialize tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function(tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,323 @@
+{% extends "base.html" %}
+
+{% block title %}{{ 'Modifica' if categoria else 'Nuova' }} Categoria Servizio - Maqueta Web{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="page-header">
+    <div>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-2">
+                <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}" class="text-decoration-none">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('lista_categorie_servizi') }}" class="text-decoration-none">Categorie Servizi</a></li>
+                <li class="breadcrumb-item active">{{ 'Modifica' if categoria else 'Nuova' }}</li>
+            </ol>
+        </nav>
+        <h1>
+            <i class="bi bi-{{ 'pencil-square' if categoria else 'plus-circle' }}"></i>
+            {{ 'Modifica Categoria' if categoria else 'Nuova Categoria' }}
+        </h1>
+    </div>
+    <a href="{{ url_for('lista_categorie_servizi') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i>
+        Torna alla lista
+    </a>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <form method="POST" id="categoryForm">
+            <!-- Informazioni Base -->
+            <div class="card mb-4 slide-up">
+                <div class="card-header">
+                    <i class="bi bi-info-circle me-2"></i>
+                    Informazioni Base
+                </div>
+                <div class="card-body">
+                    <div class="row g-4">
+                        <div class="col-12">
+                            <label class="form-label">
+                                Nome Categoria <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" class="form-control" name="nome"
+                                value="{{ categoria.nome if categoria else '' }}"
+                                placeholder="Es. Consulenza, Sviluppo, Manutenzione" required>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Descrizione</label>
+                            <input type="text" class="form-control" name="descrizione"
+                                value="{{ categoria.descrizione if categoria and categoria.descrizione else '' }}"
+                                placeholder="Breve descrizione della categoria (max 300 caratteri)"
+                                maxlength="300">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Aspetto -->
+            <div class="card mb-4 slide-up stagger-1">
+                <div class="card-header">
+                    <i class="bi bi-palette me-2"></i>
+                    Aspetto
+                </div>
+                <div class="card-body">
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <label class="form-label">Icona</label>
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="{{ categoria.icona if categoria else 'bi-folder' }}" id="iconPreview"></i>
+                                </span>
+                                <input type="text" class="form-control" name="icona" id="iconInput"
+                                    value="{{ categoria.icona if categoria else 'bi-folder' }}"
+                                    placeholder="bi-folder">
+                            </div>
+                            <small class="text-muted">Usa le <a href="https://icons.getbootstrap.com/" target="_blank">Bootstrap Icons</a></small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ordinamento e Stato -->
+            <div class="card mb-4 slide-up stagger-2">
+                <div class="card-header">
+                    <i class="bi bi-sliders me-2"></i>
+                    Ordinamento e Stato
+                </div>
+                <div class="card-body">
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <label class="form-label">Ordine di Visualizzazione</label>
+                            <input type="number" class="form-control" name="ordine"
+                                value="{{ categoria.ordine if categoria else 0 }}"
+                                min="0">
+                            <small class="text-muted">Numeri piu bassi appaiono prima</small>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="p-3 rounded h-100" style="background: var(--gray-100);">
+                                <div class="form-check form-switch d-flex align-items-center">
+                                    <input class="form-check-input me-3" type="checkbox" name="attivo" id="attivo"
+                                        {{ 'checked' if not categoria or categoria.attivo else '' }}
+                                        style="width: 3.5rem; height: 1.75rem;">
+                                    <label class="form-check-label" for="attivo">
+                                        <strong class="d-block">Attiva</strong>
+                                        <small class="text-muted">Visibile nella selezione</small>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pulsanti Azione -->
+            <div class="d-flex gap-3 mb-4">
+                <button type="submit" class="btn btn-primary btn-lg">
+                    <i class="bi bi-check-lg me-1"></i>
+                    {{ 'Salva Modifiche' if categoria else 'Crea Categoria' }}
+                </button>
+                <a href="{{ url_for('lista_categorie_servizi') }}" class="btn btn-secondary btn-lg">
+                    <i class="bi bi-x-lg me-1"></i>
+                    Annulla
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Sidebar Info -->
+    <div class="col-lg-4">
+        {% if categoria %}
+        <!-- Info Categoria -->
+        <div class="card mb-4 slide-up">
+            <div class="card-header">
+                <i class="bi bi-info-circle me-2"></i>
+                Informazioni Categoria
+            </div>
+            <div class="card-body">
+                <div class="text-center mb-4">
+                    <div class="rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3"
+                         style="width: 80px; height: 80px; background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);">
+                        <i class="{{ categoria.icona }} text-white" style="font-size: 2rem;"></i>
+                    </div>
+                    <h5 class="mb-1">{{ categoria.nome }}</h5>
+                    <p class="text-muted mb-0">{{ categoria.count_servizi() }} servizi associati</p>
+                </div>
+
+                <div class="divider"></div>
+
+                <div class="d-flex justify-content-between py-2">
+                    <span class="text-muted">ID Categoria</span>
+                    <span class="fw-semibold">#{{ categoria.id }}</span>
+                </div>
+                {% if categoria.data_creazione %}
+                <div class="d-flex justify-content-between py-2">
+                    <span class="text-muted">Creata il</span>
+                    <span class="fw-semibold">{{ categoria.data_creazione.strftime('%d/%m/%Y') }}</span>
+                </div>
+                {% endif %}
+                <div class="d-flex justify-content-between py-2">
+                    <span class="text-muted">Stato</span>
+                    {% if categoria.attivo %}
+                    <span class="badge bg-success">Attiva</span>
+                    {% else %}
+                    <span class="badge bg-danger">Disattivata</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Azioni Rapide -->
+        <div class="card slide-up stagger-1">
+            <div class="card-header">
+                <i class="bi bi-lightning-charge me-2"></i>
+                Azioni Rapide
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('lista_servizi', categoria=categoria.id) }}" class="btn btn-outline-primary">
+                        <i class="bi bi-briefcase me-2"></i>Vedi Servizi di questa Categoria
+                    </a>
+                    <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal">
+                        <i class="bi bi-trash me-2"></i>Elimina Categoria
+                    </button>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <!-- Suggerimenti -->
+        <div class="card slide-up">
+            <div class="card-header">
+                <i class="bi bi-lightbulb me-2"></i>
+                Suggerimenti
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled mb-0">
+                    <li class="d-flex mb-3">
+                        <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
+                        <span>Scegli nomi chiari e descrittivi per le categorie</span>
+                    </li>
+                    <li class="d-flex mb-3">
+                        <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
+                        <span>Usa icone diverse per distinguere le categorie</span>
+                    </li>
+                    <li class="d-flex">
+                        <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
+                        <span>Le categorie disattivate non appaiono nella selezione servizi</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Icone Comuni -->
+        <div class="card mt-4 slide-up stagger-1">
+            <div class="card-header">
+                <i class="bi bi-grid me-2"></i>
+                Icone Comuni
+            </div>
+            <div class="card-body">
+                <div class="d-flex flex-wrap gap-2">
+                    <button type="button" class="btn btn-outline-secondary btn-icon icon-btn" data-icon="bi-folder" title="bi-folder">
+                        <i class="bi bi-folder"></i>
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-icon icon-btn" data-icon="bi-gear" title="bi-gear">
+                        <i class="bi bi-gear"></i>
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-icon icon-btn" data-icon="bi-laptop" title="bi-laptop">
+                        <i class="bi bi-laptop"></i>
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-icon icon-btn" data-icon="bi-people" title="bi-people">
+                        <i class="bi bi-people"></i>
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-icon icon-btn" data-icon="bi-graph-up" title="bi-graph-up">
+                        <i class="bi bi-graph-up"></i>
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-icon icon-btn" data-icon="bi-shield-check" title="bi-shield-check">
+                        <i class="bi bi-shield-check"></i>
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-icon icon-btn" data-icon="bi-tools" title="bi-tools">
+                        <i class="bi bi-tools"></i>
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-icon icon-btn" data-icon="bi-headset" title="bi-headset">
+                        <i class="bi bi-headset"></i>
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-icon icon-btn" data-icon="bi-rocket" title="bi-rocket">
+                        <i class="bi bi-rocket"></i>
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-icon icon-btn" data-icon="bi-code-slash" title="bi-code-slash">
+                        <i class="bi bi-code-slash"></i>
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-icon icon-btn" data-icon="bi-brush" title="bi-brush">
+                        <i class="bi bi-brush"></i>
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-icon icon-btn" data-icon="bi-megaphone" title="bi-megaphone">
+                        <i class="bi bi-megaphone"></i>
+                    </button>
+                </div>
+                <small class="text-muted d-block mt-2">Clicca su un'icona per selezionarla</small>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% if categoria %}
+<!-- Delete Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-0">
+                <h5 class="modal-title">
+                    <i class="bi bi-exclamation-triangle text-danger me-2"></i>
+                    Conferma Eliminazione
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-0">Sei sicuro di voler eliminare la categoria <strong>{{ categoria.nome }}</strong>?</p>
+                {% if categoria.count_servizi() > 0 %}
+                <p class="text-warning small mt-2 mb-0">
+                    <i class="bi bi-exclamation-triangle me-1"></i>
+                    Questa categoria ha {{ categoria.count_servizi() }} servizi associati che perderanno la categoria.
+                </p>
+                {% endif %}
+                <p class="text-muted small mt-1 mb-0">Questa azione non puo essere annullata.</p>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                <form action="{{ url_for('elimina_categoria_servizio', id=categoria.id) }}" method="POST" class="d-inline">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash me-1"></i>Elimina
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Icon preview update
+    document.getElementById('iconInput').addEventListener('input', function() {
+        const iconPreview = document.getElementById('iconPreview');
+        iconPreview.className = this.value || 'bi-folder';
+    });
+
+    // Icon buttons
+    document.querySelectorAll('.icon-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const icon = this.getAttribute('data-icon');
+            document.getElementById('iconInput').value = icon;
+            document.getElementById('iconPreview').className = icon;
+        });
+    });
+
+    // Form validation feedback
+    document.getElementById('categoryForm').addEventListener('submit', function(e) {
+        const btn = this.querySelector('button[type="submit"]');
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Salvataggio...';
+        btn.disabled = true;
+    });
+</script>
+{% endblock %}
