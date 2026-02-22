@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard Artista - Maqueta Web{% endblock %}
+
+{% block content %}
+<!-- Welcome Banner -->
+<div class="card mb-4 slide-up" style="background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); border: none;">
+    <div class="card-body p-4">
+        <div class="d-flex align-items-center">
+            {% if artista.foto %}
+            <img src="{{ url_for('static', filename='uploads/' + artista.foto) }}" alt="{{ artista.nome_display }}"
+                 class="rounded-circle me-4 d-none d-md-block" style="width: 80px; height: 80px; object-fit: cover; border: 3px solid rgba(255,255,255,0.3);">
+            {% endif %}
+            <div>
+                <h3 class="text-white mb-1">Bentornato, {{ artista.nome_display }}!</h3>
+                <p class="text-white opacity-75 mb-0">Il tuo portale artista - {{ artista.tipo_display }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Stats Cards -->
+<div class="row mb-4">
+    <div class="col-md-3 col-6 mb-3">
+        <div class="card border-0" style="background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);">
+            <div class="card-body py-3">
+                <div class="d-flex align-items-center">
+                    <div class="rounded-circle bg-white bg-opacity-25 p-3 me-3">
+                        <i class="bi bi-disc-fill text-white" style="font-size: 1.5rem;"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-white mb-0">{{ dischi|length }}</h3>
+                        <small class="text-white opacity-75">Dischi</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-6 mb-3">
+        <div class="card border-0" style="background: linear-gradient(135deg, var(--success) 0%, #059669 100%);">
+            <div class="card-body py-3">
+                <div class="d-flex align-items-center">
+                    <div class="rounded-circle bg-white bg-opacity-25 p-3 me-3">
+                        <i class="bi bi-music-note-beamed text-white" style="font-size: 1.5rem;"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-white mb-0">{{ brani|length }}</h3>
+                        <small class="text-white opacity-75">Brani</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-6 mb-3">
+        <div class="card border-0" style="background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);">
+            <div class="card-body py-3">
+                <div class="d-flex align-items-center">
+                    <div class="rounded-circle bg-white bg-opacity-25 p-3 me-3">
+                        <i class="bi bi-calendar-event-fill text-white" style="font-size: 1.5rem;"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-white mb-0">{{ eventi|length }}</h3>
+                        <small class="text-white opacity-75">Eventi</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-6 mb-3">
+        <div class="card border-0" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);">
+            <div class="card-body py-3">
+                <div class="d-flex align-items-center">
+                    <div class="rounded-circle bg-white bg-opacity-25 p-3 me-3">
+                        <i class="bi bi-calendar-check text-white" style="font-size: 1.5rem;"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-white mb-0">{{ eventi_futuri|length }}</h3>
+                        <small class="text-white opacity-75">Prossimi</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Prossimi Eventi -->
+    <div class="col-lg-6 mb-4">
+        <div class="card slide-up">
+            <div class="card-header">
+                <i class="bi bi-calendar-event me-2"></i>Prossimi Eventi
+            </div>
+            <div class="card-body p-0">
+                {% if eventi_futuri %}
+                <div class="list-group list-group-flush">
+                    {% for evento in eventi_futuri[:5] %}
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="mb-1">{{ evento.titolo }}</h6>
+                                <small class="text-muted">
+                                    <i class="bi bi-geo-alt me-1"></i>{{ evento.citta }}
+                                    {% if evento.venue %} - {{ evento.venue }}{% endif %}
+                                </small>
+                            </div>
+                            <div class="text-end">
+                                <span class="badge bg-primary">{{ evento.data_evento.strftime('%d/%m/%Y') }}</span>
+                                {% if evento.ora_inizio %}
+                                <br><small class="text-muted">{{ evento.ora_inizio.strftime('%H:%M') if evento.ora_inizio }}</small>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-4 text-muted">
+                    <i class="bi bi-calendar-x" style="font-size: 2rem;"></i>
+                    <p class="mt-2 mb-0">Nessun evento in programma</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Ultimi Dischi -->
+    <div class="col-lg-6 mb-4">
+        <div class="card slide-up stagger-1">
+            <div class="card-header">
+                <i class="bi bi-disc me-2"></i>Discografia Recente
+            </div>
+            <div class="card-body p-0">
+                {% if dischi %}
+                <div class="list-group list-group-flush">
+                    {% for disco in dischi[:5] %}
+                    <a href="{{ url_for('artista_disco_dettaglio', id=disco.id) }}" class="list-group-item list-group-item-action">
+                        <div class="d-flex align-items-center">
+                            {% if disco.copertina %}
+                            <img src="{{ url_for('static', filename='uploads/' + disco.copertina) }}" alt="{{ disco.titolo }}"
+                                 class="rounded me-3" style="width: 45px; height: 45px; object-fit: cover;">
+                            {% else %}
+                            <div class="rounded me-3 d-flex align-items-center justify-content-center bg-light" style="width: 45px; height: 45px;">
+                                <i class="bi bi-disc text-muted"></i>
+                            </div>
+                            {% endif %}
+                            <div>
+                                <h6 class="mb-0">{{ disco.titolo }}</h6>
+                                <small class="text-muted">{{ disco.tipo|capitalize }} {% if disco.anno_uscita %}- {{ disco.anno_uscita }}{% endif %}</small>
+                            </div>
+                        </div>
+                    </a>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-4 text-muted">
+                    <i class="bi bi-disc" style="font-size: 2rem;"></i>
+                    <p class="mt-2 mb-0">Nessun disco ancora</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

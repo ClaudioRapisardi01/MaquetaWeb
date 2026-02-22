@@ -61,6 +61,11 @@ def ensure_user_folder(username):
         ssh.close()
 
 
+def ensure_shared_folder():
+    """Crea la cartella condivisa sul NAS se non esiste."""
+    ensure_user_folder('__condivisi__')
+
+
 def list_files(username, subpath=''):
     """Lista file e cartelle nella directory dell'utente.
 
@@ -183,6 +188,36 @@ def create_folder(username, subpath, folder_name):
         new_folder = f"{target_dir}/{safe_name}"
 
         _mkdir_recursive(sftp, new_folder)
+        return True
+    except Exception:
+        return False
+    finally:
+        sftp.close()
+        ssh.close()
+
+
+def rename_item(username, subpath, old_name, new_name):
+    """Rinomina un file o una cartella nella cartella dell'utente."""
+    ssh, sftp = _get_sftp()
+    try:
+        subpath = _safe_subpath(subpath)
+        safe_old = old_name.replace('/', '_').replace('\\', '_')
+        safe_new = new_name.replace('/', '_').replace('\\', '_').strip()
+        if not safe_new or safe_old == safe_new:
+            return False
+        base = _user_base_path(username)
+        target_dir = f"{base}/{subpath}" if subpath else base
+        old_path = f"{target_dir}/{safe_old}"
+        new_path = f"{target_dir}/{safe_new}"
+
+        # Verifica che il nuovo nome non esista già
+        try:
+            sftp.stat(new_path)
+            return False  # Esiste già
+        except FileNotFoundError:
+            pass
+
+        sftp.rename(old_path, new_path)
         return True
     except Exception:
         return False

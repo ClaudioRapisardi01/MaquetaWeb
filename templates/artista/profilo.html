@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+
+{% block title %}Il Mio Profilo - Maqueta Web{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="page-header">
+    <div>
+        <h1><i class="bi bi-person-circle"></i>Il Mio Profilo</h1>
+        <p class="text-muted mb-0 mt-1">{{ artista.tipo_display }}</p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-4 mb-4">
+        <!-- Foto e Info Base -->
+        <div class="card slide-up">
+            <div class="card-body text-center p-4">
+                {% if artista.foto %}
+                <img src="{{ url_for('static', filename='uploads/' + artista.foto) }}" alt="{{ artista.nome_display }}"
+                     class="rounded-circle mb-3" style="width: 150px; height: 150px; object-fit: cover;">
+                {% else %}
+                <div class="rounded-circle bg-primary bg-opacity-10 d-inline-flex align-items-center justify-content-center mb-3"
+                     style="width: 150px; height: 150px;">
+                    <i class="bi bi-person-fill text-primary" style="font-size: 4rem;"></i>
+                </div>
+                {% endif %}
+                <h4 class="mb-1">{{ artista.nome_display }}</h4>
+                {% if artista.nome_arte and artista.nome != artista.nome_arte %}
+                <p class="text-muted mb-2">{{ artista.nome }}</p>
+                {% endif %}
+                <span class="badge bg-primary">{{ artista.tipo_display }}</span>
+                {% if artista.genere %}
+                <span class="badge bg-secondary">{{ artista.genere }}</span>
+                {% endif %}
+
+                {% if artista.citta or artista.paese %}
+                <p class="text-muted mt-3 mb-0">
+                    <i class="bi bi-geo-alt me-1"></i>
+                    {{ artista.citta }}{% if artista.citta and artista.paese %}, {% endif %}{{ artista.paese }}
+                </p>
+                {% endif %}
+
+                {% if artista.anno_fondazione %}
+                <p class="text-muted mb-0">
+                    <i class="bi bi-calendar me-1"></i>
+                    {% if artista.is_band %}Fondazione{% else %}Attivo dal{% endif %}: {{ artista.anno_fondazione }}
+                </p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Social Links -->
+        {% if artista.instagram or artista.facebook or artista.twitter or artista.spotify or artista.youtube or artista.apple_music or artista.website %}
+        <div class="card mt-4 slide-up stagger-1">
+            <div class="card-header">
+                <i class="bi bi-share me-2"></i>Social & Link
+            </div>
+            <div class="card-body">
+                <div class="d-flex flex-column gap-2">
+                    {% if artista.spotify %}
+                    <a href="{{ artista.spotify }}" target="_blank" class="btn btn-outline-success btn-sm">
+                        <i class="bi bi-spotify me-2"></i>Spotify
+                    </a>
+                    {% endif %}
+                    {% if artista.apple_music %}
+                    <a href="{{ artista.apple_music }}" target="_blank" class="btn btn-outline-danger btn-sm">
+                        <i class="bi bi-apple me-2"></i>Apple Music
+                    </a>
+                    {% endif %}
+                    {% if artista.youtube %}
+                    <a href="{{ artista.youtube }}" target="_blank" class="btn btn-outline-danger btn-sm">
+                        <i class="bi bi-youtube me-2"></i>YouTube
+                    </a>
+                    {% endif %}
+                    {% if artista.instagram %}
+                    <a href="{{ artista.instagram }}" target="_blank" class="btn btn-outline-secondary btn-sm">
+                        <i class="bi bi-instagram me-2"></i>Instagram
+                    </a>
+                    {% endif %}
+                    {% if artista.facebook %}
+                    <a href="{{ artista.facebook }}" target="_blank" class="btn btn-outline-primary btn-sm">
+                        <i class="bi bi-facebook me-2"></i>Facebook
+                    </a>
+                    {% endif %}
+                    {% if artista.twitter %}
+                    <a href="{{ artista.twitter }}" target="_blank" class="btn btn-outline-dark btn-sm">
+                        <i class="bi bi-twitter-x me-2"></i>X (Twitter)
+                    </a>
+                    {% endif %}
+                    {% if artista.website %}
+                    <a href="{{ artista.website }}" target="_blank" class="btn btn-outline-info btn-sm">
+                        <i class="bi bi-globe me-2"></i>Sito Web
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="col-lg-8">
+        <!-- Biografia -->
+        {% if artista.bio %}
+        <div class="card mb-4 slide-up stagger-1">
+            <div class="card-header">
+                <i class="bi bi-journal-text me-2"></i>Biografia
+            </div>
+            <div class="card-body">
+                <p class="mb-0" style="white-space: pre-line;">{{ artista.bio }}</p>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Foto Copertina -->
+        {% if artista.foto_copertina %}
+        <div class="card mb-4 slide-up stagger-2">
+            <div class="card-header">
+                <i class="bi bi-image me-2"></i>Foto Copertina
+            </div>
+            <div class="card-body p-0">
+                <img src="{{ url_for('static', filename='uploads/' + artista.foto_copertina) }}" alt="Copertina"
+                     class="img-fluid rounded-bottom" style="width: 100%; max-height: 300px; object-fit: cover;">
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Membri Band -->
+        {% if artista.is_band and membri %}
+        <div class="card mb-4 slide-up stagger-2">
+            <div class="card-header">
+                <i class="bi bi-people me-2"></i>Membri della Band
+                <span class="badge bg-secondary ms-2">{{ membri|length }}</span>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>Nome</th>
+                                <th>Ruolo</th>
+                                <th>Stato</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for membro in membri %}
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        {% if membro.foto %}
+                                        <img src="{{ url_for('static', filename='uploads/' + membro.foto) }}" alt="{{ membro.nome_display }}"
+                                             class="rounded-circle me-2" style="width: 35px; height: 35px; object-fit: cover;">
+                                        {% else %}
+                                        <div class="rounded-circle bg-light d-flex align-items-center justify-content-center me-2" style="width: 35px; height: 35px;">
+                                            <i class="bi bi-person text-muted"></i>
+                                        </div>
+                                        {% endif %}
+                                        <span class="fw-semibold">{{ membro.nome_display }}</span>
+                                    </div>
+                                </td>
+                                <td>{{ membro.ruolo }}</td>
+                                <td>
+                                    {% if membro.attivo %}
+                                    <span class="badge bg-success">Attivo</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">Ex membro</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

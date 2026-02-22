@@ -29,7 +29,8 @@ def init_database():
             is_admin BOOLEAN DEFAULT FALSE,
             attivo BOOLEAN DEFAULT TRUE,
             data_creazione DATETIME DEFAULT CURRENT_TIMESTAMP,
-            ultimo_accesso DATETIME NULL
+            ultimo_accesso DATETIME NULL,
+            artista_id INT NULL
         )
     ''')
 
@@ -132,6 +133,7 @@ def init_database():
             youtube VARCHAR(255),
             apple_music VARCHAR(255),
             website VARCHAR(255),
+            email VARCHAR(255),
             genere VARCHAR(100),
             anno_fondazione INT,
             paese VARCHAR(100),
@@ -277,6 +279,42 @@ def init_database():
             INDEX idx_eventi_pubblicato (pubblicato)
         )
     ''')
+
+    # Tabella file nascosti (per nascondere file agli artisti)
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS file_nascosti (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            username VARCHAR(255) NOT NULL,
+            percorso VARCHAR(1000) NOT NULL,
+            nascosto_da INT NOT NULL,
+            data_nascosto DATETIME DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE KEY unique_file (username, percorso(255))
+        )
+    ''')
+
+    # Tabella cestino file (eliminazione logica, auto-purge dopo 30 giorni)
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS file_cestino (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            username VARCHAR(255) NOT NULL,
+            percorso VARCHAR(1000) NOT NULL,
+            eliminato_da INT NOT NULL,
+            data_eliminazione DATETIME DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_cestino_username (username),
+            INDEX idx_cestino_data (data_eliminazione)
+        )
+    ''')
+
+    # Migrazioni per database esistenti
+    migrations = [
+        "ALTER TABLE utenti ADD COLUMN artista_id INT NULL",
+        "ALTER TABLE artisti ADD COLUMN email VARCHAR(255) AFTER website",
+    ]
+    for sql in migrations:
+        try:
+            cursor.execute(sql)
+        except Exception:
+            pass  # Colonna gia esistente
 
     conn.commit()
     cursor.close()

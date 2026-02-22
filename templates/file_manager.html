@@ -6,8 +6,13 @@
 <!-- Page Header -->
 <div class="page-header">
     <div>
+        {% if shared %}
+        <h1><i class="bi bi-folder-symlink"></i>File Condivisi</h1>
+        <p class="text-muted mb-0 mt-1">Spazio comune per tutti gli amministratori</p>
+        {% else %}
         <h1><i class="bi bi-folder2-open"></i>I Miei File</h1>
         <p class="text-muted mb-0 mt-1">Gestisci i tuoi file personali</p>
+        {% endif %}
     </div>
     <div class="d-flex gap-2">
         <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#newFolderModal">
@@ -21,13 +26,34 @@
     </div>
 </div>
 
+{% if current_user.is_admin and all_users and not shared %}
+<!-- Selettore utente per Admin -->
+<div class="card mb-4">
+    <div class="card-body py-2">
+        <form method="GET" action="{{ url_for('file_manager') }}" class="d-flex align-items-center gap-3">
+            <label class="form-label mb-0 fw-semibold text-nowrap">
+                <i class="bi bi-person-gear me-1"></i>File artista:
+            </label>
+            <select name="user_id" class="form-select form-select-sm" style="max-width: 300px;" onchange="this.form.submit()">
+                <option value="">-- I miei file --</option>
+                {% for u in all_users %}
+                <option value="{{ u.id }}" {% if selected_user_id and selected_user_id|string == u.id|string %}selected{% endif %}>
+                    {{ u.nome_completo }} ({{ u.username }})
+                </option>
+                {% endfor %}
+            </select>
+        </form>
+    </div>
+</div>
+{% endif %}
+
 <!-- Breadcrumb Navigation -->
 <div class="card mb-4">
     <div class="card-body py-2">
         <nav aria-label="breadcrumb" class="mb-0">
             <ol class="breadcrumb mb-0">
                 <li class="breadcrumb-item">
-                    <a href="{{ url_for('file_manager') }}" class="text-decoration-none">
+                    <a href="{{ url_for('file_manager', user_id=selected_user_id, shared='1' if shared else None) }}" class="text-decoration-none">
                         <i class="bi bi-house-door me-1"></i>Home
                     </a>
                 </li>
@@ -36,7 +62,7 @@
                 <li class="breadcrumb-item active">{{ crumb.name }}</li>
                 {% else %}
                 <li class="breadcrumb-item">
-                    <a href="{{ url_for('file_manager', path=crumb.path) }}" class="text-decoration-none">{{ crumb.name }}</a>
+                    <a href="{{ url_for('file_manager', path=crumb.path, user_id=selected_user_id, shared='1' if shared else None) }}" class="text-decoration-none">{{ crumb.name }}</a>
                 </li>
                 {% endif %}
                 {% endfor %}
@@ -52,6 +78,8 @@
             <i class="bi bi-files me-2"></i>
             {% if subpath %}
                 <span class="fw-semibold">{{ breadcrumb[-1].name if breadcrumb else 'File' }}</span>
+            {% elif shared %}
+                Cartella Condivisa
             {% else %}
                 La Mia Cartella
             {% endif %}
@@ -83,7 +111,7 @@
                     <tr>
                         <td colspan="4">
                             {% set parent_path = '/'.join(subpath.split('/')[:-1]) %}
-                            <a href="{{ url_for('file_manager', path=parent_path) }}" class="text-decoration-none d-flex align-items-center">
+                            <a href="{{ url_for('file_manager', path=parent_path, user_id=selected_user_id, shared='1' if shared else None) }}" class="text-decoration-none d-flex align-items-center">
                                 <i class="bi bi-arrow-up-circle text-muted me-3" style="font-size: 1.5rem;"></i>
                                 <span class="text-muted fw-semibold">..</span>
                             </a>
@@ -92,14 +120,15 @@
                     {% endif %}
 
                     {% for file in files %}
-                    <tr class="file-row">
+                    <tr class="file-row{% if file.nascosto %} table-secondary{% endif %}" {% if file.nascosto %}style="opacity: 0.6;"{% endif %}>
                         <td>
                             {% if file.is_dir %}
-                            <a href="{{ url_for('file_manager', path=(subpath + '/' + file.name if subpath else file.name)) }}"
+                            <a href="{{ url_for('file_manager', path=(subpath + '/' + file.name if subpath else file.name), user_id=selected_user_id, shared='1' if shared else None) }}"
                                class="text-decoration-none d-flex align-items-center">
                                 <i class="bi bi-folder-fill text-warning me-3" style="font-size: 1.5rem;"></i>
                                 <div>
                                     <span class="fw-semibold">{{ file.name }}</span>
+                                    {% if file.nascosto %}<span class="badge bg-secondary ms-1">Nascosto</span>{% endif %}
                                     <div class="d-md-none small text-muted">Cartella</div>
                                 </div>
                             </a>
@@ -108,6 +137,7 @@
                                 <i class="{{ get_file_icon(file.extension) }} text-primary me-3" style="font-size: 1.5rem;"></i>
                                 <div>
                                     <span class="fw-semibold">{{ file.name }}</span>
+                                    {% if file.nascosto %}<span class="badge bg-secondary ms-1">Nascosto</span>{% endif %}
                                     <div class="d-md-none small text-muted">{{ file.size_human }}</div>
                                 </div>
                             </div>
@@ -121,12 +151,44 @@
                         </td>
                         <td>
                             <div class="btn-group-actions justify-content-end">
+                                {% if current_user.is_admin and selected_user_id and not shared %}
+                                <!-- Pulsante nascondi/mostra per admin sui file dell'artista -->
+                                {% if file.nascosto %}
+                                <form method="POST" action="{{ url_for('file_manager_mostra') }}" class="d-inline">
+                                    <input type="hidden" name="subpath" value="{{ subpath }}">
+                                    <input type="hidden" name="filename" value="{{ file.name }}">
+                                    <input type="hidden" name="target_user_id" value="{{ selected_user_id }}">
+                                    <button type="submit" class="btn btn-sm btn-outline-info btn-icon" title="Mostra all'artista">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                </form>
+                                {% else %}
+                                <form method="POST" action="{{ url_for('file_manager_nascondi') }}" class="d-inline">
+                                    <input type="hidden" name="subpath" value="{{ subpath }}">
+                                    <input type="hidden" name="filename" value="{{ file.name }}">
+                                    <input type="hidden" name="target_user_id" value="{{ selected_user_id }}">
+                                    <button type="submit" class="btn btn-sm btn-outline-secondary btn-icon" title="Nascondi all'artista">
+                                        <i class="bi bi-eye-slash"></i>
+                                    </button>
+                                </form>
+                                {% endif %}
+                                {% endif %}
+
                                 {% if file.is_dir %}
-                                <a href="{{ url_for('file_manager', path=(subpath + '/' + file.name if subpath else file.name)) }}"
+                                <a href="{{ url_for('file_manager', path=(subpath + '/' + file.name if subpath else file.name), user_id=selected_user_id, shared='1' if shared else None) }}"
                                    class="btn btn-sm btn-outline-primary btn-icon"
                                    data-bs-toggle="tooltip" title="Apri">
                                     <i class="bi bi-folder2-open"></i>
                                 </a>
+                                <button type="button"
+                                        class="btn btn-sm btn-outline-warning btn-icon"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#renameModal"
+                                        data-item-name="{{ file.name }}"
+                                        data-item-type="cartella"
+                                        title="Rinomina">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
                                 <button type="button"
                                         class="btn btn-sm btn-outline-danger btn-icon"
                                         data-bs-toggle="modal"
@@ -136,11 +198,20 @@
                                     <i class="bi bi-trash"></i>
                                 </button>
                                 {% else %}
-                                <a href="#" onclick="downloadFile('{{ url_for('file_manager_download', path=subpath, file=file.name) }}', this); return false;"
+                                <a href="#" onclick="downloadFile('{{ url_for('file_manager_download', path=subpath, file=file.name, user_id=selected_user_id, shared='1' if shared else None) }}', this); return false;"
                                    class="btn btn-sm btn-outline-success btn-icon"
                                    data-bs-toggle="tooltip" title="Scarica">
                                     <i class="bi bi-download"></i>
                                 </a>
+                                <button type="button"
+                                        class="btn btn-sm btn-outline-warning btn-icon"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#renameModal"
+                                        data-item-name="{{ file.name }}"
+                                        data-item-type="file"
+                                        title="Rinomina">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
                                 <button type="button"
                                         class="btn btn-sm btn-outline-danger btn-icon"
                                         data-bs-toggle="modal"
@@ -192,6 +263,8 @@
             <form method="POST" action="{{ url_for('file_manager_upload') }}" enctype="multipart/form-data" id="uploadForm">
                 <div class="modal-body">
                     <input type="hidden" name="subpath" value="{{ subpath }}">
+                    <input type="hidden" name="target_user_id" value="{{ selected_user_id or '' }}">
+                    {% if shared %}<input type="hidden" name="shared" value="1">{% endif %}
 
                     <!-- Drop Zone -->
                     <div id="dropZone" class="border-2 border-dashed rounded p-5 text-center"
@@ -254,6 +327,8 @@
             <form method="POST" action="{{ url_for('file_manager_nuova_cartella') }}">
                 <div class="modal-body">
                     <input type="hidden" name="subpath" value="{{ subpath }}">
+                    <input type="hidden" name="target_user_id" value="{{ selected_user_id or '' }}">
+                    {% if shared %}<input type="hidden" name="shared" value="1">{% endif %}
                     <label class="form-label">Nome della cartella</label>
                     <input type="text" class="form-control" name="folder_name"
                            placeholder="Es. Documenti, Foto, Progetti..." required>
@@ -284,12 +359,14 @@
                 <p class="mb-1">Sei sicuro di voler eliminare il file:</p>
                 <p class="fw-semibold mb-0" id="deleteFileName"></p>
                 <p class="text-muted small mt-1 mb-0">Dimensione: <span id="deleteFileSize"></span></p>
-                <p class="text-muted small mt-2 mb-0">Questa azione non puo essere annullata.</p>
+                <p class="text-muted small mt-2 mb-0">Il file verra spostato nel cestino e eliminato definitivamente dopo 30 giorni.</p>
             </div>
             <div class="modal-footer border-0">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
                 <form method="POST" action="{{ url_for('file_manager_delete') }}" id="deleteFileForm">
                     <input type="hidden" name="subpath" value="{{ subpath }}">
+                    <input type="hidden" name="target_user_id" value="{{ selected_user_id or '' }}">
+                    {% if shared %}<input type="hidden" name="shared" value="1">{% endif %}
                     <input type="hidden" name="filename" id="deleteFileInput">
                     <button type="submit" class="btn btn-danger">
                         <i class="bi bi-trash me-1"></i>Elimina
@@ -314,18 +391,50 @@
             <div class="modal-body">
                 <p class="mb-1">Sei sicuro di voler eliminare la cartella:</p>
                 <p class="fw-semibold mb-0" id="deleteFolderName"></p>
-                <p class="text-muted small mt-2 mb-0">La cartella deve essere vuota per poter essere eliminata.</p>
+                <p class="text-muted small mt-2 mb-0">La cartella verra spostata nel cestino e eliminata definitivamente dopo 30 giorni.</p>
             </div>
             <div class="modal-footer border-0">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
                 <form method="POST" action="{{ url_for('file_manager_elimina_cartella') }}" id="deleteFolderForm">
                     <input type="hidden" name="subpath" value="{{ subpath }}">
+                    <input type="hidden" name="target_user_id" value="{{ selected_user_id or '' }}">
+                    {% if shared %}<input type="hidden" name="shared" value="1">{% endif %}
                     <input type="hidden" name="folder_name" id="deleteFolderInput">
                     <button type="submit" class="btn btn-danger">
                         <i class="bi bi-trash me-1"></i>Elimina
                     </button>
                 </form>
             </div>
+        </div>
+    </div>
+</div>
+<!-- Rename Modal -->
+<div class="modal fade" id="renameModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-0">
+                <h5 class="modal-title">
+                    <i class="bi bi-pencil-square text-warning me-2"></i>
+                    Rinomina
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('file_manager_rinomina') }}">
+                <div class="modal-body">
+                    <input type="hidden" name="subpath" value="{{ subpath }}">
+                    <input type="hidden" name="target_user_id" value="{{ selected_user_id or '' }}">
+                    {% if shared %}<input type="hidden" name="shared" value="1">{% endif %}
+                    <input type="hidden" name="old_name" id="renameOldName">
+                    <label class="form-label">Nuovo nome</label>
+                    <input type="text" class="form-control" name="new_name" id="renameNewName" required>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                    <button type="submit" class="btn btn-warning">
+                        <i class="bi bi-pencil me-1"></i>Rinomina
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
@@ -537,6 +646,26 @@
         document.getElementById('deleteFileName').textContent = button.getAttribute('data-file-name');
         document.getElementById('deleteFileSize').textContent = button.getAttribute('data-file-size');
         document.getElementById('deleteFileInput').value = button.getAttribute('data-file-name');
+    });
+
+    // Rename Modal
+    const renameModal = document.getElementById('renameModal');
+    renameModal.addEventListener('show.bs.modal', function(event) {
+        const button = event.relatedTarget;
+        const itemName = button.getAttribute('data-item-name');
+        document.getElementById('renameOldName').value = itemName;
+        const newNameInput = document.getElementById('renameNewName');
+        newNameInput.value = itemName;
+        // Seleziona il nome senza estensione per i file
+        setTimeout(() => {
+            newNameInput.focus();
+            const dotIndex = itemName.lastIndexOf('.');
+            if (dotIndex > 0 && button.getAttribute('data-item-type') === 'file') {
+                newNameInput.setSelectionRange(0, dotIndex);
+            } else {
+                newNameInput.select();
+            }
+        }, 300);
     });
 
     // Delete Folder Modal

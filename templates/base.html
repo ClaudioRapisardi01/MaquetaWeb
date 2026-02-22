@@ -38,12 +38,12 @@
                 <div class="dropdown">
                     <a class="nav-link dropdown-toggle d-flex align-items-center p-0" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
                         <div class="user-avatar">
-                            {{ current_user.nome[0] }}{{ current_user.cognome[0] }}
+                            {{ current_user.nome[0] }}{{ current_user.cognome[0] if current_user.cognome else '' }}
                         </div>
                         <div class="d-none d-lg-block ms-2">
                             <div class="fw-semibold text-white">{{ current_user.nome_completo }}</div>
                             <small class="text-white opacity-75">
-                                {% if current_user.is_admin %}Amministratore{% else %}Utente{% endif %}
+                                {% if current_user.is_admin %}Amministratore{% elif is_artista %}Artista{% else %}Utente{% endif %}
                             </small>
                         </div>
                     </a>
@@ -51,7 +51,7 @@
                         <li class="px-3 py-2">
                             <div class="d-flex align-items-center">
                                 <div class="user-avatar me-3" style="width: 50px; height: 50px; font-size: 1.25rem;">
-                                    {{ current_user.nome[0] }}{{ current_user.cognome[0] }}
+                                    {{ current_user.nome[0] }}{{ current_user.cognome[0] if current_user.cognome else '' }}
                                 </div>
                                 <div>
                                     <div class="fw-bold">{{ current_user.nome_completo }}</div>
@@ -92,6 +92,40 @@
             <h5>NAVIGAZIONE</h5>
         </div>
         <ul class="sidebar-nav">
+            {% if is_artista and not current_user.is_admin %}
+            <!-- Navigazione Portale Artista -->
+            <li class="sidebar-item">
+                <a href="{{ url_for('artista_dashboard') }}" class="sidebar-link {% if request.path == '/artista/dashboard' %}active{% endif %}">
+                    <i class="bi bi-speedometer2"></i>
+                    <span>Dashboard</span>
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a href="{{ url_for('artista_profilo') }}" class="sidebar-link {% if request.path == '/artista/profilo' %}active{% endif %}">
+                    <i class="bi bi-person-circle"></i>
+                    <span>Il Mio Profilo</span>
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a href="{{ url_for('artista_dischi') }}" class="sidebar-link {% if request.path.startswith('/artista/dischi') %}active{% endif %}">
+                    <i class="bi bi-disc-fill"></i>
+                    <span>Discografia</span>
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a href="{{ url_for('artista_brani') }}" class="sidebar-link {% if request.path == '/artista/brani' %}active{% endif %}">
+                    <i class="bi bi-music-note-beamed"></i>
+                    <span>Brani</span>
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a href="{{ url_for('artista_eventi') }}" class="sidebar-link {% if request.path == '/artista/eventi' %}active{% endif %}">
+                    <i class="bi bi-calendar-event-fill"></i>
+                    <span>Eventi</span>
+                </a>
+            </li>
+            {% else %}
+            <!-- Navigazione Admin/Utente -->
             {% for item in menu_items %}
             <li class="sidebar-item">
                 <a href="{{ item.url }}" class="sidebar-link {% if request.path == item.url or request.path.startswith(item.url + '/') %}active{% endif %}">
@@ -100,24 +134,28 @@
                 </a>
             </li>
             {% endfor %}
+            {% endif %}
 
-            <!-- Separatore -->
+            <!-- Separatore - File -->
             <li class="sidebar-item" style="border-top: 1px solid rgba(255,255,255,0.08); margin-top: 0.5rem; padding-top: 0.5rem;">
-                <a href="{{ url_for('file_manager') }}" class="sidebar-link {% if request.path.startswith('/file-manager') %}active{% endif %}">
+                <a href="{{ url_for('file_manager') }}" class="sidebar-link {% if request.path.startswith('/file-manager') and request.args.get('shared') != '1' %}active{% endif %}">
                     <i class="bi bi-folder2-open"></i>
                     <span>I Miei File</span>
                 </a>
             </li>
+            {% if current_user.is_admin %}
+            <li class="sidebar-item">
+                <a href="{{ url_for('file_manager', shared='1') }}" class="sidebar-link {% if request.args.get('shared') == '1' %}active{% endif %}">
+                    <i class="bi bi-folder-symlink"></i>
+                    <span>File Condivisi</span>
+                </a>
+            </li>
+            {% endif %}
         </ul>
-
-        <!-- Sidebar Footer -->
-        <div class="sidebar-header mt-auto" style="position: absolute; bottom: 0; width: 100%; border-top: 1px solid rgba(255,255,255,0.08); border-bottom: none;">
-            <div class="d-flex align-items-center">
-                <i class="bi bi-shield-check text-success me-2"></i>
-                <small class="text-muted">v1.0.0</small>
-            </div>
-        </div>
     </div>
+
+    <!-- Sidebar Overlay (mobile) -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
     <!-- Main Content -->
     <div class="main-content" id="mainContent">
@@ -154,17 +192,47 @@
         const sidebarToggle = document.getElementById('sidebarToggle');
         const sidebar = document.getElementById('sidebar');
         const mainContent = document.getElementById('mainContent');
+        const sidebarOverlay = document.getElementById('sidebarOverlay');
+
+        function isMobile() {
+            return window.innerWidth <= 992;
+        }
+
+        function closeMobileSidebar() {
+            sidebar.classList.remove('mobile-open');
+            sidebarOverlay.classList.remove('active');
+        }
 
         sidebarToggle.addEventListener('click', function() {
-            sidebar.classList.toggle('collapsed');
-            mainContent.classList.toggle('expanded');
-
-            // Save state to localStorage
-            localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('collapsed'));
+            if (isMobile()) {
+                sidebar.classList.toggle('mobile-open');
+                sidebarOverlay.classList.toggle('active');
+            } else {
+                sidebar.classList.toggle('collapsed');
+                mainContent.classList.toggle('expanded');
+                localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('collapsed'));
+            }
         });
 
-        // Restore sidebar state
-        if (localStorage.getItem('sidebarCollapsed') === 'true') {
+        // Chiudi sidebar cliccando sull'overlay
+        sidebarOverlay.addEventListener('click', closeMobileSidebar);
+
+        // Chiudi sidebar mobile quando si clicca un link
+        sidebar.querySelectorAll('.sidebar-link').forEach(function(link) {
+            link.addEventListener('click', function() {
+                if (isMobile()) closeMobileSidebar();
+            });
+        });
+
+        // Gestisci resize: se si passa da mobile a desktop, pulisci classi mobile
+        window.addEventListener('resize', function() {
+            if (!isMobile()) {
+                closeMobileSidebar();
+            }
+        });
+
+        // Restore sidebar state (solo desktop)
+        if (!isMobile() && localStorage.getItem('sidebarCollapsed') === 'true') {
             sidebar.classList.add('collapsed');
             mainContent.classList.add('expanded');
         }

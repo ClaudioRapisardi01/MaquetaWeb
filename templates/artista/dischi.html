@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block title %}La Mia Discografia - Maqueta Web{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="page-header">
+    <div>
+        <h1><i class="bi bi-disc-fill"></i>La Mia Discografia</h1>
+        <p class="text-muted mb-0 mt-1">{{ dischi|length }} release</p>
+    </div>
+</div>
+
+{% if dischi %}
+<div class="row">
+    {% for disco in dischi %}
+    <div class="col-md-6 col-lg-4 mb-4">
+        <a href="{{ url_for('artista_disco_dettaglio', id=disco.id) }}" class="text-decoration-none">
+            <div class="card h-100 slide-up stagger-{{ loop.index0 % 3 }}">
+                {% if disco.copertina %}
+                <img src="{{ url_for('static', filename='uploads/' + disco.copertina) }}" alt="{{ disco.titolo }}"
+                     class="card-img-top" style="height: 200px; object-fit: cover;">
+                {% else %}
+                <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 200px;">
+                    <i class="bi bi-disc text-muted" style="font-size: 4rem;"></i>
+                </div>
+                {% endif %}
+                <div class="card-body">
+                    <h5 class="card-title mb-1">{{ disco.titolo }}</h5>
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <span class="badge bg-primary">{{ disco.tipo|capitalize }}</span>
+                        {% if disco.anno_uscita %}
+                        <small class="text-muted">{{ disco.anno_uscita }}</small>
+                        {% endif %}
+                    </div>
+                    {% if disco.etichetta %}
+                    <small class="text-muted d-block">
+                        <i class="bi bi-building me-1"></i>{{ disco.etichetta }}
+                    </small>
+                    {% endif %}
+                    {% if disco.formato %}
+                    <small class="text-muted d-block">
+                        <i class="bi bi-vinyl me-1"></i>{{ disco.formato }}
+                    </small>
+                    {% endif %}
+                </div>
+            </div>
+        </a>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="card">
+    <div class="card-body text-center py-5">
+        <i class="bi bi-disc text-muted" style="font-size: 4rem;"></i>
+        <h5 class="mt-3">Nessun disco ancora</h5>
+        <p class="text-muted">La tua discografia apparira qui quando verranno aggiunti dei dischi.</p>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

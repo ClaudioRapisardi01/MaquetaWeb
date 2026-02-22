@@ -7,7 +7,8 @@
       "Bash(if not exist \"c:\\Users\\crapisardi\\Desktop\\ProgrammiCodice\\MaquetaWeb\\static\\css\" mkdir \"c:\\Users\\crapisardi\\Desktop\\ProgrammiCodice\\MaquetaWeb\\static\\css\")",
       "Bash(if not exist \"c:\\\\Users\\\\claud\\\\Desktop\\\\MaquetaWeb\\\\static\\\\uploads\" mkdir \"c:\\\\Users\\\\claud\\\\Desktop\\\\MaquetaWeb\\\\static\\\\uploads\")",
       "Bash(python:*)",
-      "Bash(pip install:*)"
+      "Bash(pip install:*)",
+      "Bash(find:*)"
     ]
   }
 }

@@ -4,7 +4,7 @@ from database import get_db_connection
 class Utente:
     def __init__(self, id=None, username=None, password_hash=None, nome=None,
                  cognome=None, email=None, is_admin=False, attivo=True,
-                 data_creazione=None, ultimo_accesso=None):
+                 data_creazione=None, ultimo_accesso=None, artista_id=None):
         self.id = id
         self.username = username
         self.password_hash = password_hash
@@ -15,6 +15,7 @@ class Utente:
         self.attivo = attivo
         self.data_creazione = data_creazione
         self.ultimo_accesso = ultimo_accesso
+        self.artista_id = artista_id
 
     @property
     def is_authenticated(self):
@@ -33,7 +34,30 @@ class Utente:
 
     @property
     def nome_completo(self):
-        return f"{self.nome} {self.cognome}"
+        if self.cognome:
+            return f"{self.nome} {self.cognome}"
+        return self.nome
+
+    @property
+    def is_artista(self):
+        return self.artista_id is not None
+
+    def get_artista(self):
+        if self.artista_id:
+            return Artista.get_by_id(self.artista_id)
+        return None
+
+    @staticmethod
+    def get_by_artista_id(artista_id):
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('SELECT * FROM utenti WHERE artista_id = %s', (artista_id,))
+        row = cursor.fetchone()
+        cursor.close()
+        conn.close()
+        if row:
+            return Utente(**row)
+        return None
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -93,15 +117,15 @@ class Utente:
         if self.id:
             cursor.execute('''
                 UPDATE utenti SET username=%s, password_hash=%s, nome=%s, cognome=%s,
-                email=%s, is_admin=%s, attivo=%s, ultimo_accesso=%s WHERE id=%s
+                email=%s, is_admin=%s, attivo=%s, ultimo_accesso=%s, artista_id=%s WHERE id=%s
             ''', (self.username, self.password_hash, self.nome, self.cognome,
-                  self.email, self.is_admin, self.attivo, self.ultimo_accesso, self.id))
+                  self.email, self.is_admin, self.attivo, self.ultimo_accesso, self.artista_id, self.id))
         else:
             cursor.execute('''
-                INSERT INTO utenti (username, password_hash, nome, cognome, email, is_admin, attivo)
-                VALUES (%s, %s, %s, %s, %s, %s, %s)
+                INSERT INTO utenti (username, password_hash, nome, cognome, email, is_admin, attivo, artista_id)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
             ''', (self.username, self.password_hash, self.nome, self.cognome,
-                  self.email, self.is_admin, self.attivo))
+                  self.email, self.is_admin, self.attivo, self.artista_id))
             self.id = cursor.lastrowid
         conn.commit()
         cursor.close()
@@ -640,7 +664,7 @@ class Artista:
     def __init__(self, id=None, nome=None, nome_arte=None, slug=None, bio=None,
                  foto=None, foto_copertina=None, is_band=False,
                  instagram=None, facebook=None, twitter=None, spotify=None,
-                 youtube=None, apple_music=None, website=None,
+                 youtube=None, apple_music=None, website=None, email=None,
                  genere=None, anno_fondazione=None, paese=None, citta=None,
                  attivo=True, in_evidenza=False, ordine=0,
                  data_creazione=None, data_modifica=None):
@@ -659,6 +683,7 @@ class Artista:
         self.youtube = youtube
         self.apple_music = apple_music
         self.website = website
+        self.email = email
         self.genere = genere
         self.anno_fondazione = anno_fondazione
         self.paese = paese
@@ -676,6 +701,9 @@ class Artista:
     @property
     def tipo_display(self):
         return 'Band' if self.is_band else 'Solista'
+
+    def get_utente(self):
+        return Utente.get_by_artista_id(self.id)
 
     @staticmethod
     def get_by_id(artista_id):
@@ -873,22 +901,22 @@ class Artista:
                 UPDATE artisti SET
                     nome=%s, nome_arte=%s, slug=%s, bio=%s, foto=%s, foto_copertina=%s,
                     is_band=%s, instagram=%s, facebook=%s, twitter=%s, spotify=%s,
-                    youtube=%s, apple_music=%s, website=%s, genere=%s, anno_fondazione=%s,
+                    youtube=%s, apple_music=%s, website=%s, email=%s, genere=%s, anno_fondazione=%s,
                     paese=%s, citta=%s, attivo=%s, in_evidenza=%s, ordine=%s
                 WHERE id=%s
             ''', (self.nome, self.nome_arte, self.slug, self.bio, self.foto, self.foto_copertina,
                   self.is_band, self.instagram, self.facebook, self.twitter, self.spotify,
-                  self.youtube, self.apple_music, self.website, self.genere, self.anno_fondazione,
+                  self.youtube, self.apple_music, self.website, self.email, self.genere, self.anno_fondazione,
                   self.paese, self.citta, self.attivo, self.in_evidenza, self.ordine, self.id))
         else:
             cursor.execute('''
                 INSERT INTO artisti (nome, nome_arte, slug, bio, foto, foto_copertina,
                     is_band, instagram, facebook, twitter, spotify, youtube, apple_music,
-                    website, genere, anno_fondazione, paese, citta, attivo, in_evidenza, ordine)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    website, email, genere, anno_fondazione, paese, citta, attivo, in_evidenza, ordine)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             ''', (self.nome, self.nome_arte, self.slug, self.bio, self.foto, self.foto_copertina,
                   self.is_band, self.instagram, self.facebook, self.twitter, self.spotify,
-                  self.youtube, self.apple_music, self.website, self.genere, self.anno_fondazione,
+                  self.youtube, self.apple_music, self.website, self.email, self.genere, self.anno_fondazione,
                   self.paese, self.citta, self.attivo, self.in_evidenza, self.ordine))
             self.id = cursor.lastrowid
         conn.commit()

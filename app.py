@@ -1,4 +1,4 @@
-from flask import Flask, render_template, redirect, url_for, flash, request, send_file, jsonify
+from flask import Flask, render_template, redirect, url_for, flash, request, send_file, jsonify, session
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from werkzeug.utils import secure_filename
 import nas_storage
@@ -84,6 +84,89 @@ def admin_required(f):
     return decorated_function
 
 
+def artista_required(f):
+    """Richiede che l'utente sia collegato a un artista (o sia admin)."""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated:
+            return redirect(url_for('login'))
+        if not current_user.is_admin and not current_user.artista_id:
+            flash('Accesso negato. Questa sezione e riservata agli artisti.', 'danger')
+            return redirect(url_for('dashboard'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+
+def _get_file_manager_username():
+    """Restituisce lo username da usare per le operazioni file manager.
+    Gli admin possono selezionare un altro utente o lo spazio condiviso."""
+    if current_user.is_admin:
+        shared = request.form.get('shared') or request.args.get('shared')
+        if shared == '1':
+            return '__condivisi__'
+        user_id = request.form.get('target_user_id') or request.args.get('user_id')
+        if user_id:
+            target_user = Utente.get_by_id(int(user_id))
+            if target_user:
+                return target_user.username
+    return current_user.username
+
+
+def _get_hidden_files(username):
+    """Restituisce un set di percorsi nascosti per un dato username."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('SELECT percorso FROM file_nascosti WHERE username = %s', (username,))
+    result = {row['percorso'] for row in cursor.fetchall()}
+    cursor.close()
+    conn.close()
+    return result
+
+
+def _build_file_path(subpath, filename):
+    """Costruisce il percorso relativo di un file."""
+    if subpath:
+        return f"{subpath}/{filename}"
+    return filename
+
+
+def _get_deleted_files(username):
+    """Restituisce un set di percorsi eliminati logicamente per un dato username."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('SELECT percorso FROM file_cestino WHERE username = %s', (username,))
+    result = {row['percorso'] for row in cursor.fetchall()}
+    cursor.close()
+    conn.close()
+    return result
+
+
+def _purge_expired_files():
+    """Elimina fisicamente dal NAS i file nel cestino da piu di 30 giorni."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        'SELECT id, username, percorso FROM file_cestino WHERE data_eliminazione < NOW() - INTERVAL 30 DAY'
+    )
+    expired = cursor.fetchall()
+    for item in expired:
+        # Separa subpath e filename dal percorso
+        percorso = item['percorso']
+        if '/' in percorso:
+            parts = percorso.rsplit('/', 1)
+            subpath, filename = parts[0], parts[1]
+        else:
+            subpath, filename = '', percorso
+        try:
+            nas_storage.delete_file(item['username'], subpath, filename)
+        except Exception:
+            pass
+        cursor.execute('DELETE FROM file_cestino WHERE id = %s', (item['id'],))
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+
 # Mapping per route che non corrispondono direttamente a un URL di menu
 # es. /admin/membri/* fa parte della sezione Artisti
 ROUTE_MENU_MAPPING = {
@@ -121,8 +204,9 @@ def permesso_menu_required(f):
 def inject_menu():
     if current_user.is_authenticated:
         menu_items = current_user.get_menu_visibili()
-        return dict(menu_items=menu_items)
-    return dict(menu_items=[])
+        is_artista = current_user.artista_id is not None
+        return dict(menu_items=menu_items, is_artista=is_artista)
+    return dict(menu_items=[], is_artista=False)
 
 
 # ============ ROUTES AUTENTICAZIONE ============
@@ -235,11 +319,64 @@ def profilo():
 @login_required
 def file_manager():
     subpath = request.args.get('path', '')
+    shared = request.args.get('shared') == '1'
+
+    # Admin puo navigare file di altri utenti
+    target_username = current_user.username
+    selected_user_id = None
+    all_users = []
+
+    if shared:
+        if not current_user.is_admin:
+            flash('Accesso non autorizzato.', 'danger')
+            return redirect(url_for('file_manager'))
+        target_username = '__condivisi__'
+        try:
+            nas_storage.ensure_shared_folder()
+        except Exception:
+            pass
+    elif current_user.is_admin:
+        # Mostra solo gli utenti artisti nel selettore (non gli altri admin)
+        all_users = [u for u in Utente.get_all() if u.artista_id]
+        selected_user_id = request.args.get('user_id')
+        if selected_user_id:
+            target_user = Utente.get_by_id(int(selected_user_id))
+            if target_user and target_user.artista_id:
+                target_username = target_user.username
+            else:
+                selected_user_id = None
+
     try:
-        files = nas_storage.list_files(current_user.username, subpath)
+        files = nas_storage.list_files(target_username, subpath)
     except Exception as e:
         flash(f'Errore di connessione al NAS: {str(e)}', 'danger')
         files = []
+
+    # Purge file scaduti dal cestino (oltre 30 giorni)
+    try:
+        _purge_expired_files()
+    except Exception:
+        pass
+
+    # Filtraggio file nel cestino (eliminati logicamente)
+    deleted = _get_deleted_files(target_username)
+    if deleted:
+        files = [f for f in files if _build_file_path(subpath, f['name']) not in deleted]
+
+    # Filtraggio file nascosti
+    if not current_user.is_admin and not shared:
+        # Artista: nascondi i file marcati come nascosti
+        hidden = _get_hidden_files(target_username)
+        if hidden:
+            files = [f for f in files if _build_file_path(subpath, f['name']) not in hidden]
+    elif current_user.is_admin and selected_user_id and not shared:
+        # Admin che naviga file di un artista: mostra tutto ma segna i nascosti
+        hidden = _get_hidden_files(target_username)
+        for f in files:
+            f['nascosto'] = _build_file_path(subpath, f['name']) in hidden
+    else:
+        for f in files:
+            f['nascosto'] = False
 
     # Costruisci breadcrumb
     breadcrumb = []
@@ -252,17 +389,32 @@ def file_manager():
             })
 
     return render_template('file_manager.html', files=files, subpath=subpath,
-                           breadcrumb=breadcrumb, get_file_icon=nas_storage.get_file_icon)
+                           breadcrumb=breadcrumb, get_file_icon=nas_storage.get_file_icon,
+                           all_users=all_users, selected_user_id=selected_user_id,
+                           shared=shared)
+
+
+def _file_manager_redirect(subpath, user_id=None, shared=False):
+    """Helper per redirect consistente nelle route file manager."""
+    params = {'path': subpath} if subpath else {}
+    if shared:
+        params['shared'] = '1'
+    elif user_id:
+        params['user_id'] = user_id
+    return redirect(url_for('file_manager', **params))
 
 
 @app.route('/file-manager/upload', methods=['POST'])
 @login_required
 def file_manager_upload():
     subpath = request.form.get('subpath', '')
+    target_username = _get_file_manager_username()
+    user_id = request.form.get('target_user_id', '')
+    shared = request.form.get('shared') == '1'
 
     if 'files' not in request.files:
         flash('Nessun file selezionato.', 'warning')
-        return redirect(url_for('file_manager', path=subpath))
+        return _file_manager_redirect(subpath, user_id, shared)
 
     files = request.files.getlist('files')
     uploaded = 0
@@ -272,7 +424,7 @@ def file_manager_upload():
         if file and file.filename:
             try:
                 success = nas_storage.upload_file(
-                    current_user.username, subpath, file.stream, file.filename
+                    target_username, subpath, file.stream, file.filename
                 )
                 if success:
                     uploaded += 1
@@ -286,7 +438,7 @@ def file_manager_upload():
     if errors > 0:
         flash(f'{errors} file non caricato/i per errori.', 'danger')
 
-    return redirect(url_for('file_manager', path=subpath))
+    return _file_manager_redirect(subpath, user_id, shared)
 
 
 @app.route('/file-manager/download')
@@ -294,11 +446,22 @@ def file_manager_upload():
 def file_manager_download():
     subpath = request.args.get('path', '')
     filename = request.args.get('file', '')
+    target_username = current_user.username
+
+    if current_user.is_admin:
+        if request.args.get('shared') == '1':
+            target_username = '__condivisi__'
+        else:
+            user_id = request.args.get('user_id')
+            if user_id:
+                target_user = Utente.get_by_id(int(user_id))
+                if target_user:
+                    target_username = target_user.username
 
     if not filename:
         return 'File non specificato.', 400
 
-    buffer = nas_storage.download_file(current_user.username, subpath, filename)
+    buffer = nas_storage.download_file(target_username, subpath, filename)
     if buffer is None:
         return 'Errore durante il download del file.', 500
 
@@ -310,18 +473,55 @@ def file_manager_download():
 def file_manager_delete():
     subpath = request.form.get('subpath', '')
     filename = request.form.get('filename', '')
+    target_username = _get_file_manager_username()
+    user_id = request.form.get('target_user_id', '')
+    shared = request.form.get('shared') == '1'
 
     if not filename:
         flash('File non specificato.', 'danger')
-        return redirect(url_for('file_manager', path=subpath))
+        return _file_manager_redirect(subpath, user_id, shared)
 
-    success = nas_storage.delete_file(current_user.username, subpath, filename)
-    if success:
-        flash(f'File "{filename}" eliminato con successo.', 'success')
-    else:
+    # Eliminazione logica: il file resta sul NAS ma viene nascosto
+    percorso = _build_file_path(subpath, filename)
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            'INSERT IGNORE INTO file_cestino (username, percorso, eliminato_da) VALUES (%s, %s, %s)',
+            (target_username, percorso, current_user.id)
+        )
+        conn.commit()
+        flash(f'File "{filename}" spostato nel cestino. Verra eliminato definitivamente tra 30 giorni.', 'success')
+    except Exception:
         flash(f'Errore durante l\'eliminazione del file "{filename}".', 'danger')
+    finally:
+        cursor.close()
+        conn.close()
 
-    return redirect(url_for('file_manager', path=subpath))
+    return _file_manager_redirect(subpath, user_id, shared)
+
+
+@app.route('/file-manager/rinomina', methods=['POST'])
+@login_required
+def file_manager_rinomina():
+    subpath = request.form.get('subpath', '')
+    old_name = request.form.get('old_name', '')
+    new_name = request.form.get('new_name', '').strip()
+    target_username = _get_file_manager_username()
+    user_id = request.form.get('target_user_id', '')
+    shared = request.form.get('shared') == '1'
+
+    if not old_name or not new_name:
+        flash('Nome non valido.', 'danger')
+        return _file_manager_redirect(subpath, user_id, shared)
+
+    success = nas_storage.rename_item(target_username, subpath, old_name, new_name)
+    if success:
+        flash(f'"{old_name}" rinominato in "{new_name}" con successo.', 'success')
+    else:
+        flash(f'Errore durante la rinomina. Verifica che il nuovo nome non sia già in uso.', 'danger')
+
+    return _file_manager_redirect(subpath, user_id, shared)
 
 
 @app.route('/file-manager/nuova-cartella', methods=['POST'])
@@ -329,18 +529,21 @@ def file_manager_delete():
 def file_manager_nuova_cartella():
     subpath = request.form.get('subpath', '')
     folder_name = request.form.get('folder_name', '').strip()
+    target_username = _get_file_manager_username()
+    user_id = request.form.get('target_user_id', '')
+    shared = request.form.get('shared') == '1'
 
     if not folder_name:
         flash('Nome cartella non valido.', 'danger')
-        return redirect(url_for('file_manager', path=subpath))
+        return _file_manager_redirect(subpath, user_id, shared)
 
-    success = nas_storage.create_folder(current_user.username, subpath, folder_name)
+    success = nas_storage.create_folder(target_username, subpath, folder_name)
     if success:
         flash(f'Cartella "{folder_name}" creata con successo.', 'success')
     else:
         flash(f'Errore durante la creazione della cartella.', 'danger')
 
-    return redirect(url_for('file_manager', path=subpath))
+    return _file_manager_redirect(subpath, user_id, shared)
 
 
 @app.route('/file-manager/elimina-cartella', methods=['POST'])
@@ -348,18 +551,96 @@ def file_manager_nuova_cartella():
 def file_manager_elimina_cartella():
     subpath = request.form.get('subpath', '')
     folder_name = request.form.get('folder_name', '')
+    target_username = _get_file_manager_username()
+    user_id = request.form.get('target_user_id', '')
+    shared = request.form.get('shared') == '1'
 
     if not folder_name:
         flash('Cartella non specificata.', 'danger')
-        return redirect(url_for('file_manager', path=subpath))
+        return _file_manager_redirect(subpath, user_id, shared)
 
-    success = nas_storage.delete_folder(current_user.username, subpath, folder_name)
-    if success:
-        flash(f'Cartella "{folder_name}" eliminata con successo.', 'success')
-    else:
-        flash('Errore: la cartella potrebbe non essere vuota o non esistere.', 'danger')
+    # Eliminazione logica della cartella
+    percorso = _build_file_path(subpath, folder_name)
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            'INSERT IGNORE INTO file_cestino (username, percorso, eliminato_da) VALUES (%s, %s, %s)',
+            (target_username, percorso, current_user.id)
+        )
+        conn.commit()
+        flash(f'Cartella "{folder_name}" spostata nel cestino. Verra eliminata definitivamente tra 30 giorni.', 'success')
+    except Exception:
+        flash('Errore durante l\'eliminazione della cartella.', 'danger')
+    finally:
+        cursor.close()
+        conn.close()
 
-    return redirect(url_for('file_manager', path=subpath))
+    return _file_manager_redirect(subpath, user_id, shared)
+
+
+@app.route('/file-manager/nascondi', methods=['POST'])
+@login_required
+@admin_required
+def file_manager_nascondi():
+    subpath = request.form.get('subpath', '')
+    filename = request.form.get('filename', '')
+    user_id = request.form.get('target_user_id', '')
+    target_username = _get_file_manager_username()
+
+    if not filename or not user_id:
+        flash('Operazione non valida.', 'danger')
+        return _file_manager_redirect(subpath, user_id, False)
+
+    percorso = _build_file_path(subpath, filename)
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            'INSERT IGNORE INTO file_nascosti (username, percorso, nascosto_da) VALUES (%s, %s, %s)',
+            (target_username, percorso, current_user.id)
+        )
+        conn.commit()
+        flash(f'"{filename}" nascosto all\'artista.', 'success')
+    except Exception:
+        flash('Errore durante l\'operazione.', 'danger')
+    finally:
+        cursor.close()
+        conn.close()
+
+    return _file_manager_redirect(subpath, user_id, False)
+
+
+@app.route('/file-manager/mostra', methods=['POST'])
+@login_required
+@admin_required
+def file_manager_mostra():
+    subpath = request.form.get('subpath', '')
+    filename = request.form.get('filename', '')
+    user_id = request.form.get('target_user_id', '')
+    target_username = _get_file_manager_username()
+
+    if not filename or not user_id:
+        flash('Operazione non valida.', 'danger')
+        return _file_manager_redirect(subpath, user_id, False)
+
+    percorso = _build_file_path(subpath, filename)
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            'DELETE FROM file_nascosti WHERE username = %s AND percorso = %s',
+            (target_username, percorso)
+        )
+        conn.commit()
+        flash(f'"{filename}" ora visibile all\'artista.', 'success')
+    except Exception:
+        flash('Errore durante l\'operazione.', 'danger')
+    finally:
+        cursor.close()
+        conn.close()
+
+    return _file_manager_redirect(subpath, user_id, False)
 
 
 # ============ ROUTES DASHBOARD ============
@@ -367,6 +648,8 @@ def file_manager_elimina_cartella():
 @app.route('/dashboard')
 @login_required
 def dashboard():
+    if current_user.artista_id and not current_user.is_admin:
+        return redirect(url_for('artista_dashboard'))
     return render_template('dashboard.html')
 
 
@@ -1020,6 +1303,8 @@ def nuovo_artista():
                 if not foto_copertina and file.filename:
                     flash('Formato immagine copertina non valido.', 'warning')
 
+        email_artista = request.form.get('email_artista') or None
+
         artista = Artista(
             nome=nome,
             nome_arte=nome_arte,
@@ -1035,6 +1320,7 @@ def nuovo_artista():
             youtube=youtube,
             apple_music=apple_music,
             website=website,
+            email=email_artista,
             genere=genere,
             anno_fondazione=anno_fondazione,
             paese=paese,
@@ -1045,8 +1331,40 @@ def nuovo_artista():
         )
         artista.save()
 
+        # Creazione automatica account artista
+        if email_artista:
+            existing_user = Utente.get_by_username(email_artista)
+            if existing_user:
+                flash(f'Attenzione: esiste gia un utente con username "{email_artista}". Account artista non creato.', 'warning')
+            else:
+                import secrets
+                import string
+                alphabet = string.ascii_letters + string.digits
+                password_generata = ''.join(secrets.choice(alphabet) for _ in range(12))
+
+                nuovo_utente = Utente(
+                    username=email_artista,
+                    nome=artista.nome_arte or artista.nome,
+                    cognome='',
+                    email=email_artista,
+                    is_admin=False,
+                    attivo=True,
+                    artista_id=artista.id
+                )
+                nuovo_utente.set_password(password_generata)
+                nuovo_utente.save()
+
+                try:
+                    nas_storage.ensure_user_folder(email_artista)
+                except Exception:
+                    pass
+
+                session['credenziali_artista'] = {'username': email_artista, 'password': password_generata}
+                flash('Artista e account creati con successo.', 'success')
+                return redirect(url_for('credenziali_artista', id=artista.id))
+
         flash('Artista creato con successo.', 'success')
-        return redirect(url_for('lista_artisti'))
+        return redirect(url_for('modifica_artista', id=artista.id))
 
     return render_template('admin/artista_form.html')
 
@@ -1086,6 +1404,7 @@ def modifica_artista(id):
         artista.youtube = request.form.get('youtube') or None
         artista.apple_music = request.form.get('apple_music') or None
         artista.website = request.form.get('website') or None
+        artista.email = request.form.get('email_artista') or None
 
         # Metadati
         artista.genere = request.form.get('genere') or None
@@ -1134,7 +1453,8 @@ def modifica_artista(id):
         flash('Artista modificato con successo.', 'success')
         return redirect(url_for('lista_artisti'))
 
-    return render_template('admin/artista_form.html', artista=artista, membri=membri, dischi=dischi, eventi=eventi)
+    account_artista = artista.get_utente()
+    return render_template('admin/artista_form.html', artista=artista, membri=membri, dischi=dischi, eventi=eventi, account_artista=account_artista)
 
 
 @app.route('/admin/artisti/<int:id>/elimina', methods=['POST'])
@@ -1153,6 +1473,54 @@ def elimina_artista(id):
     artista.delete()
     flash('Artista eliminato con successo.', 'success')
     return redirect(url_for('lista_artisti'))
+
+
+@app.route('/admin/artisti/<int:id>/reset-password', methods=['POST'])
+@login_required
+@admin_required
+def reset_password_artista(id):
+    artista = Artista.get_by_id(id)
+    if not artista:
+        flash('Artista non trovato.', 'danger')
+        return redirect(url_for('lista_artisti'))
+
+    account = artista.get_utente()
+    if not account:
+        flash('Questo artista non ha un account associato.', 'warning')
+        return redirect(url_for('modifica_artista', id=id))
+
+    import secrets
+    import string
+    alphabet = string.ascii_letters + string.digits
+    nuova_password = ''.join(secrets.choice(alphabet) for _ in range(12))
+    account.set_password(nuova_password)
+    account.save()
+
+    session['credenziali_artista'] = {'username': account.username, 'password': nuova_password}
+    return redirect(url_for('credenziali_artista', id=id))
+
+
+@app.route('/admin/artisti/<int:id>/credenziali')
+@login_required
+@admin_required
+def credenziali_artista(id):
+    artista = Artista.get_by_id(id)
+    if not artista:
+        flash('Artista non trovato.', 'danger')
+        return redirect(url_for('lista_artisti'))
+
+    cred = session.pop('credenziali_artista', None)
+    if not cred:
+        flash('Nessuna credenziale da visualizzare.', 'warning')
+        return redirect(url_for('modifica_artista', id=id))
+
+    from datetime import datetime
+    return render_template('admin/credenziali_artista.html',
+        artista=artista,
+        username=cred['username'],
+        password=cred['password'],
+        data_generazione=datetime.now().strftime('%d/%m/%Y alle %H:%M')
+    )
 
 
 # ============ ROUTES ADMIN MEMBRI BAND ============
@@ -1840,40 +2208,126 @@ def init_db():
         )
         admin.set_password('admin123')
         admin.save()
+        print('Utente admin creato (password: admin123)')
 
-        # Crea voci menu di default
-        menu_dashboard = Menu(nome='Dashboard', icona='bi-speedometer2', url='/dashboard', ordine=0)
-        menu_dashboard.save()
+    # Crea voci menu mancanti (aggiunge solo quelle che non esistono gia)
+    menu_default = [
+        ('Dashboard', 'bi-speedometer2', '/dashboard', 0),
+        ('Utenti', 'bi-people', '/admin/utenti', 1),
+        ('Gestione Menu', 'bi-list-ul', '/admin/menu', 2),
+        ('Servizi', 'bi-briefcase', '/admin/servizi', 3),
+        ('Categorie Servizi', 'bi-folder', '/admin/categorie-servizi', 4),
+        ('News', 'bi-newspaper', '/admin/news', 5),
+        ('Artisti', 'bi-people-fill', '/admin/artisti', 10),
+        ('Discografia', 'bi-disc-fill', '/admin/dischi', 11),
+        ('Brani', 'bi-music-note-beamed', '/admin/brani', 12),
+        ('Eventi', 'bi-calendar-event-fill', '/admin/eventi', 13),
+    ]
 
-        menu_utenti = Menu(nome='Utenti', icona='bi-people', url='/admin/utenti', ordine=1)
-        menu_utenti.save()
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    for nome, icona, url, ordine in menu_default:
+        cursor.execute('SELECT id FROM menu WHERE url = %s', (url,))
+        if not cursor.fetchone():
+            cursor.execute(
+                'INSERT INTO menu (nome, icona, url, ordine, attivo) VALUES (%s, %s, %s, %s, TRUE)',
+                (nome, icona, url, ordine)
+            )
+            print(f'Menu aggiunto: {nome}')
+    conn.commit()
+    cursor.close()
+    conn.close()
 
-        menu_gestione_menu = Menu(nome='Gestione Menu', icona='bi-list-ul', url='/admin/menu', ordine=2)
-        menu_gestione_menu.save()
 
-        menu_servizi = Menu(nome='Servizi', icona='bi-briefcase', url='/admin/servizi', ordine=3)
-        menu_servizi.save()
+# ============ PORTALE ARTISTA ============
 
-        menu_cat_servizi = Menu(nome='Categorie Servizi', icona='bi-folder', url='/admin/categorie-servizi', ordine=4)
-        menu_cat_servizi.save()
+@app.route('/artista/dashboard')
+@login_required
+@artista_required
+def artista_dashboard():
+    artista = current_user.get_artista()
+    if not artista:
+        flash('Profilo artista non trovato.', 'danger')
+        return redirect(url_for('dashboard'))
 
-        menu_news = Menu(nome='News', icona='bi-newspaper', url='/admin/news', ordine=5)
-        menu_news.save()
+    dischi = artista.get_dischi()
+    brani = artista.get_brani()
+    eventi = artista.get_eventi()
+    eventi_futuri = artista.get_eventi_futuri()
 
-        # Menu sezione artisti/etichetta
-        menu_artisti = Menu(nome='Artisti', icona='bi-people-fill', url='/admin/artisti', ordine=10)
-        menu_artisti.save()
+    return render_template('artista/dashboard.html',
+                           artista=artista, dischi=dischi, brani=brani,
+                           eventi=eventi, eventi_futuri=eventi_futuri)
 
-        menu_dischi = Menu(nome='Discografia', icona='bi-disc-fill', url='/admin/dischi', ordine=11)
-        menu_dischi.save()
 
-        menu_brani = Menu(nome='Brani', icona='bi-music-note-beamed', url='/admin/brani', ordine=12)
-        menu_brani.save()
+@app.route('/artista/profilo')
+@login_required
+@artista_required
+def artista_profilo():
+    artista = current_user.get_artista()
+    if not artista:
+        flash('Profilo artista non trovato.', 'danger')
+        return redirect(url_for('dashboard'))
 
-        menu_eventi = Menu(nome='Eventi', icona='bi-calendar-event-fill', url='/admin/eventi', ordine=13)
-        menu_eventi.save()
+    membri = artista.get_membri() if artista.is_band else []
+    return render_template('artista/profilo.html', artista=artista, membri=membri)
 
-        print('Database inizializzato con utente admin (password: admin123)')
+
+@app.route('/artista/dischi')
+@login_required
+@artista_required
+def artista_dischi():
+    artista = current_user.get_artista()
+    if not artista:
+        flash('Profilo artista non trovato.', 'danger')
+        return redirect(url_for('dashboard'))
+
+    dischi = artista.get_dischi()
+    return render_template('artista/dischi.html', artista=artista, dischi=dischi)
+
+
+@app.route('/artista/dischi/<int:id>')
+@login_required
+@artista_required
+def artista_disco_dettaglio(id):
+    artista = current_user.get_artista()
+    if not artista:
+        flash('Profilo artista non trovato.', 'danger')
+        return redirect(url_for('dashboard'))
+
+    disco = Disco.get_by_id(id)
+    if not disco or disco.artista_id != artista.id:
+        flash('Disco non trovato.', 'danger')
+        return redirect(url_for('artista_dischi'))
+
+    brani = disco.get_brani()
+    return render_template('artista/disco_dettaglio.html', artista=artista, disco=disco, brani=brani)
+
+
+@app.route('/artista/brani')
+@login_required
+@artista_required
+def artista_brani():
+    artista = current_user.get_artista()
+    if not artista:
+        flash('Profilo artista non trovato.', 'danger')
+        return redirect(url_for('dashboard'))
+
+    brani = artista.get_brani()
+    return render_template('artista/brani.html', artista=artista, brani=brani)
+
+
+@app.route('/artista/eventi')
+@login_required
+@artista_required
+def artista_eventi():
+    artista = current_user.get_artista()
+    if not artista:
+        flash('Profilo artista non trovato.', 'danger')
+        return redirect(url_for('dashboard'))
+
+    eventi = artista.get_eventi()
+    return render_template('artista/eventi.html', artista=artista, eventi=eventi)
 
 
 if __name__ == '__main__':

@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+
+{% block title %}{{ disco.titolo }} - Maqueta Web{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="page-header">
+    <div>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-2">
+                <li class="breadcrumb-item"><a href="{{ url_for('artista_dashboard') }}" class="text-decoration-none">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('artista_dischi') }}" class="text-decoration-none">Discografia</a></li>
+                <li class="breadcrumb-item active">{{ disco.titolo }}</li>
+            </ol>
+        </nav>
+        <h1><i class="bi bi-disc-fill"></i>{{ disco.titolo }}</h1>
+    </div>
+    <a href="{{ url_for('artista_dischi') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i>
+        Torna alla discografia
+    </a>
+</div>
+
+<div class="row">
+    <div class="col-lg-4 mb-4">
+        <!-- Copertina e Info -->
+        <div class="card slide-up">
+            {% if disco.copertina %}
+            <img src="{{ url_for('static', filename='uploads/' + disco.copertina) }}" alt="{{ disco.titolo }}"
+                 class="card-img-top" style="max-height: 350px; object-fit: cover;">
+            {% else %}
+            <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 250px;">
+                <i class="bi bi-disc text-muted" style="font-size: 5rem;"></i>
+            </div>
+            {% endif %}
+            <div class="card-body">
+                <h4 class="mb-2">{{ disco.titolo }}</h4>
+                <span class="badge bg-primary mb-3">{{ disco.tipo|capitalize }}</span>
+
+                <table class="table table-sm table-borderless mb-0">
+                    {% if disco.anno_uscita %}
+                    <tr><td class="text-muted">Anno</td><td class="fw-semibold">{{ disco.anno_uscita }}</td></tr>
+                    {% endif %}
+                    {% if disco.data_uscita %}
+                    <tr><td class="text-muted">Data uscita</td><td class="fw-semibold">{{ disco.data_uscita.strftime('%d/%m/%Y') }}</td></tr>
+                    {% endif %}
+                    {% if disco.etichetta %}
+                    <tr><td class="text-muted">Etichetta</td><td class="fw-semibold">{{ disco.etichetta }}</td></tr>
+                    {% endif %}
+                    {% if disco.formato %}
+                    <tr><td class="text-muted">Formato</td><td class="fw-semibold">{{ disco.formato }}</td></tr>
+                    {% endif %}
+                </table>
+            </div>
+        </div>
+
+        <!-- Link Streaming -->
+        {% if disco.link_spotify or disco.link_apple_music or disco.link_youtube_music or disco.link_amazon_music or disco.link_deezer or disco.link_tidal %}
+        <div class="card mt-4 slide-up stagger-1">
+            <div class="card-header">
+                <i class="bi bi-headphones me-2"></i>Ascolta su
+            </div>
+            <div class="card-body">
+                <div class="d-flex flex-column gap-2">
+                    {% if disco.link_spotify %}
+                    <a href="{{ disco.link_spotify }}" target="_blank" class="btn btn-outline-success btn-sm">
+                        <i class="bi bi-spotify me-2"></i>Spotify
+                    </a>
+                    {% endif %}
+                    {% if disco.link_apple_music %}
+                    <a href="{{ disco.link_apple_music }}" target="_blank" class="btn btn-outline-danger btn-sm">
+                        <i class="bi bi-apple me-2"></i>Apple Music
+                    </a>
+                    {% endif %}
+                    {% if disco.link_youtube_music %}
+                    <a href="{{ disco.link_youtube_music }}" target="_blank" class="btn btn-outline-danger btn-sm">
+                        <i class="bi bi-youtube me-2"></i>YouTube Music
+                    </a>
+                    {% endif %}
+                    {% if disco.link_amazon_music %}
+                    <a href="{{ disco.link_amazon_music }}" target="_blank" class="btn btn-outline-warning btn-sm">
+                        <i class="bi bi-music-note me-2"></i>Amazon Music
+                    </a>
+                    {% endif %}
+                    {% if disco.link_deezer %}
+                    <a href="{{ disco.link_deezer }}" target="_blank" class="btn btn-outline-secondary btn-sm">
+                        <i class="bi bi-music-note-beamed me-2"></i>Deezer
+                    </a>
+                    {% endif %}
+                    {% if disco.link_tidal %}
+                    <a href="{{ disco.link_tidal }}" target="_blank" class="btn btn-outline-dark btn-sm">
+                        <i class="bi bi-water me-2"></i>Tidal
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="col-lg-8">
+        <!-- Descrizione -->
+        {% if disco.descrizione %}
+        <div class="card mb-4 slide-up stagger-1">
+            <div class="card-header">
+                <i class="bi bi-journal-text me-2"></i>Descrizione
+            </div>
+            <div class="card-body">
+                <p class="mb-0" style="white-space: pre-line;">{{ disco.descrizione }}</p>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Tracklist -->
+        <div class="card slide-up stagger-2">
+            <div class="card-header">
+                <i class="bi bi-list-ol me-2"></i>Tracklist
+                <span class="badge bg-secondary ms-2">{{ brani|length }} brani</span>
+            </div>
+            <div class="card-body p-0">
+                {% if brani %}
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th style="width: 50px;">#</th>
+                                <th>Titolo</th>
+                                <th class="d-none d-md-table-cell" style="width: 100px;">Durata</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for brano in brani %}
+                            <tr>
+                                <td class="text-muted">{{ brano.numero_traccia or loop.index }}</td>
+                                <td>
+                                    <span class="fw-semibold">{{ brano.titolo }}</span>
+                                    {% if brano.featuring %}
+                                    <span class="text-muted"> feat. {{ brano.featuring }}</span>
+                                    {% endif %}
+                                </td>
+                                <td class="d-none d-md-table-cell text-muted">{{ brano.durata or '-' }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4 text-muted">
+                    <p class="mb-0">Nessun brano inserito per questo disco</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Credenziali Artista - {{ artista.nome_display }}</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
+            color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+        .page {
+            background: #fff;
+            width: 100%;
+            max-width: 600px;
+            border-radius: 12px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #fff;
+            padding: 40px 40px 30px;
+            text-align: center;
+        }
+        .header h1 {
+            font-size: 1.6rem;
+            font-weight: 700;
+            margin-bottom: 6px;
+        }
+        .header p {
+            font-size: 0.95rem;
+            opacity: 0.8;
+        }
+        .content {
+            padding: 40px;
+        }
+        .artist-name {
+            text-align: center;
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 30px;
+            color: #1a1a2e;
+        }
+        .credential-box {
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 24px;
+            margin-bottom: 20px;
+        }
+        .credential-row {
+            display: flex;
+            align-items: center;
+            padding: 14px 0;
+        }
+        .credential-row + .credential-row {
+            border-top: 1px solid #eee;
+        }
+        .credential-label {
+            font-size: 0.85rem;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            width: 120px;
+            flex-shrink: 0;
+        }
+        .credential-value {
+            font-size: 1.15rem;
+            font-weight: 600;
+            font-family: 'Courier New', monospace;
+            color: #1a1a2e;
+            word-break: break-all;
+        }
+        .notice {
+            background: #fff8e1;
+            border-left: 4px solid #ffc107;
+            padding: 14px 18px;
+            font-size: 0.88rem;
+            color: #665500;
+            border-radius: 0 6px 6px 0;
+            margin-bottom: 20px;
+        }
+        .notice strong { display: block; margin-bottom: 4px; }
+        .url-box {
+            background: #f0f4ff;
+            border-radius: 8px;
+            padding: 16px 20px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .url-box .label {
+            font-size: 0.8rem;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+        }
+        .url-box .url {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #1a1a2e;
+        }
+        .footer {
+            text-align: center;
+            padding: 20px 40px 30px;
+            font-size: 0.8rem;
+            color: #aaa;
+        }
+        .actions {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            margin-top: 30px;
+        }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 24px;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            text-decoration: none;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-print {
+            background: #1a1a2e;
+            color: #fff;
+        }
+        .btn-print:hover { background: #16213e; }
+        .btn-back {
+            background: #e0e0e0;
+            color: #333;
+        }
+        .btn-back:hover { background: #d0d0d0; }
+
+        @media print {
+            body { background: #fff; padding: 0; }
+            .page { box-shadow: none; border-radius: 0; max-width: 100%; }
+            .actions { display: none !important; }
+            .footer { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <div class="page">
+        <div class="header">
+            <h1>Maqueta Web</h1>
+            <p>Credenziali di accesso portale artista</p>
+        </div>
+
+        <div class="content">
+            <div class="artist-name">{{ artista.nome_display }}</div>
+
+            <div class="credential-box">
+                <div class="credential-row">
+                    <div class="credential-label">Username</div>
+                    <div class="credential-value">{{ username }}</div>
+                </div>
+                <div class="credential-row">
+                    <div class="credential-label">Password</div>
+                    <div class="credential-value">{{ password }}</div>
+                </div>
+            </div>
+
+            <div class="url-box">
+                <div class="label">Indirizzo di accesso</div>
+                <div class="url">{{ request.host_url }}login</div>
+            </div>
+
+            <div class="notice">
+                <strong>Importante</strong>
+                Conserva queste credenziali in un luogo sicuro. Al primo accesso ti consigliamo di cambiare la password.
+            </div>
+
+            <div class="actions">
+                <button class="btn btn-print" onclick="window.print()">
+                    <svg width="18" height="18" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M2.5 8a.5.5 0 1 0 0-1 .5.5 0 0 0 0 1z"/>
+                        <path d="M5 1a2 2 0 0 0-2 2v2H2a2 2 0 0 0-2 2v3a2 2 0 0 0 2 2h1v1a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-1h1a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-1V3a2 2 0 0 0-2-2H5zM4 3a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2H4V3zm1 10a1 1 0 0 1-1-1v-2h8v2a1 1 0 0 1-1 1H5z"/>
+                    </svg>
+                    Stampa / Salva PDF
+                </button>
+                <a href="{{ url_for('modifica_artista', id=artista.id) }}" class="btn btn-back">
+                    Torna all'artista
+                </a>
+            </div>
+        </div>
+
+        <div class="footer">
+            Documento generato il {{ data_generazione }} — Maqueta Web
+        </div>
+    </div>
+</body>
+</html>
