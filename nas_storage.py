@@ -2,23 +2,66 @@ import paramiko
 import stat
 import os
 import io
+import logging
+import traceback
 from datetime import datetime
 from config import Config
+
+logger = logging.getLogger(__name__)
 
 
 def _get_sftp():
     """Crea e restituisce una connessione SSH + SFTP al NAS."""
-    ssh = paramiko.SSHClient()
-    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    ssh.connect(
-        hostname=Config.NAS_HOST,
-        port=Config.NAS_PORT,
-        username=Config.NAS_USER,
-        password=Config.NAS_PASSWORD,
-        timeout=10
-    )
-    sftp = ssh.open_sftp()
-    return ssh, sftp
+    try:
+        ssh = paramiko.SSHClient()
+        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        logger.info(f"Connessione SFTP a {Config.NAS_HOST}:{Config.NAS_PORT} come {Config.NAS_USER}")
+        ssh.connect(
+            hostname=Config.NAS_HOST,
+            port=Config.NAS_PORT,
+            username=Config.NAS_USER,
+            password=Config.NAS_PASSWORD,
+            timeout=10
+        )
+        sftp = ssh.open_sftp()
+        logger.info("Connessione SFTP stabilita con successo")
+        return ssh, sftp
+    except PermissionError as e:
+        logger.error(f"PermissionError durante connessione SFTP: {e}")
+        logger.error(f"Traceback completo:\n{traceback.format_exc()}")
+        raise
+    except Exception as e:
+        logger.error(f"Errore connessione SFTP ({type(e).__name__}): {e}")
+        logger.error(f"Traceback completo:\n{traceback.format_exc()}")
+        raise
+
+
+def diagnose_nas():
+    """Diagnostica la connessione NAS: mostra pwd e contenuto root."""
+    ssh, sftp = _get_sftp()
+    try:
+        pwd = sftp.normalize('.')
+        logger.info(f"NAS pwd: {pwd}")
+        logger.info(f"NAS_BASE_PATH configurato: {Config.NAS_BASE_PATH}")
+        # Lista contenuto della home
+        items = sftp.listdir(pwd)
+        logger.info(f"Contenuto home ({pwd}): {items}")
+        # Prova a verificare se il base path esiste
+        try:
+            sftp.stat(Config.NAS_BASE_PATH)
+            logger.info(f"NAS_BASE_PATH '{Config.NAS_BASE_PATH}' ESISTE")
+        except Exception:
+            logger.warning(f"NAS_BASE_PATH '{Config.NAS_BASE_PATH}' NON ESISTE")
+            # Prova con path assoluto
+            abs_path = f"{pwd}/{Config.NAS_BASE_PATH}"
+            try:
+                sftp.stat(abs_path)
+                logger.info(f"Path assoluto '{abs_path}' ESISTE")
+            except Exception:
+                logger.warning(f"Path assoluto '{abs_path}' NON ESISTE")
+    finally:
+        sftp.close()
+        ssh.close()
 
 
 def _safe_subpath(subpath):
@@ -46,8 +89,11 @@ def _mkdir_recursive(sftp, path):
         current = f"{current}/{part}" if current else part
         try:
             sftp.stat(current)
-        except FileNotFoundError:
-            sftp.mkdir(current)
+        except Exception:
+            try:
+                sftp.mkdir(current)
+            except Exception:
+                pass
 
 
 def ensure_user_folder(username):
@@ -72,11 +118,13 @@ def list_files(username, subpath=''):
     Returns:
         list of dict: [{name, size, modified, is_dir, extension}, ...]
     """
+    logger.info(f"list_files chiamata per utente={username}, subpath={subpath}")
     ssh, sftp = _get_sftp()
     try:
         subpath = _safe_subpath(subpath)
         base = _user_base_path(username)
         full_path = f"{base}/{subpath}" if subpath else base
+        logger.info(f"Accesso a path NAS: {full_path}")
 
         # Crea la cartella se non esiste
         _mkdir_recursive(sftp, full_path)

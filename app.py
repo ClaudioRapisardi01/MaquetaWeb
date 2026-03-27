@@ -11,6 +11,9 @@ from datetime import datetime
 from functools import wraps
 import os
 import uuid
+import logging
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s %(name)s %(levelname)s: %(message)s')
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -348,7 +351,9 @@ def file_manager():
 
     try:
         files = nas_storage.list_files(target_username, subpath)
+        logging.info(f"list_files OK per {target_username}, {len(files)} file trovati")
     except Exception as e:
+        logging.error(f"ERRORE list_files per {target_username}: {type(e).__name__}: {e}", exc_info=True)
         flash(f'Errore di connessione al NAS: {str(e)}', 'danger')
         files = []
 
