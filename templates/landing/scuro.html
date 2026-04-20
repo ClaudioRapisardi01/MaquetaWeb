@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Maqueta Web - Dark</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+<style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+        --bg: #08080c;
+        --bg2: #101018;
+        --neon: #00ffa3;
+        --neon2: #ff006e;
+        --neon3: #3a86ff;
+        --text: #e7e7ef;
+        --muted: #7a7a8c;
+    }
+    body {
+        font-family: 'Space Grotesk', sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        overflow-x: hidden;
+        -webkit-font-smoothing: antialiased;
+    }
+    a { color: inherit; text-decoration: none; }
+    .mono { font-family: 'JetBrains Mono', monospace; }
+    .container { max-width: 1280px; margin: 0 auto; padding: 0 24px; }
+
+    /* Animated grid bg */
+    body::before {
+        content: '';
+        position: fixed; inset: 0; z-index: 0;
+        background-image:
+            linear-gradient(rgba(0,255,163,.04) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(0,255,163,.04) 1px, transparent 1px);
+        background-size: 50px 50px;
+        pointer-events: none;
+    }
+    main { position: relative; z-index: 1; }
+
+    /* Nav */
+    nav {
+        position: sticky; top: 0; z-index: 100;
+        background: rgba(8,8,12,.85);
+        backdrop-filter: blur(16px);
+        border-bottom: 1px solid rgba(0,255,163,.15);
+        padding: 18px 0;
+    }
+    nav .container { display: flex; justify-content: space-between; align-items: center; }
+    .logo { font-weight: 700; font-size: 1.4rem; }
+    .logo b { color: var(--neon); }
+    nav ul { display: flex; gap: 28px; list-style: none; }
+    nav ul a { font-size: .9rem; color: var(--muted); transition: color .2s; }
+    nav ul a:hover { color: var(--neon); }
+    .btn-neon {
+        display: inline-block; padding: 10px 22px;
+        background: var(--neon); color: #000;
+        border-radius: 2px; font-weight: 600;
+        font-size: .9rem;
+        transition: all .2s;
+        clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
+    }
+    .btn-neon:hover { background: #fff; box-shadow: 0 0 20px var(--neon); }
+    .btn-ghost {
+        display: inline-block; padding: 10px 22px;
+        background: transparent; color: var(--text);
+        border: 1px solid rgba(255,255,255,.2);
+        font-weight: 500; font-size: .9rem;
+        transition: all .2s;
+    }
+    .btn-ghost:hover { border-color: var(--neon); color: var(--neon); }
+
+    /* Hero */
+    .hero { padding: 120px 0 80px; position: relative; }
+    .hero::after {
+        content: '';
+        position: absolute; top: 20%; right: -200px;
+        width: 500px; height: 500px;
+        background: radial-gradient(circle, rgba(255,0,110,.3), transparent 70%);
+        filter: blur(60px);
+        pointer-events: none;
+    }
+    .hero-tag {
+        display: inline-flex; align-items: center; gap: 8px;
+        padding: 6px 14px;
+        border: 1px solid rgba(0,255,163,.3);
+        border-radius: 20px;
+        font-size: .8rem;
+        color: var(--neon);
+        margin-bottom: 24px;
+    }
+    .hero-tag .dot {
+        width: 8px; height: 8px; background: var(--neon);
+        border-radius: 50%;
+        animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+        0%, 100% { opacity: 1; box-shadow: 0 0 0 0 var(--neon); }
+        50% { opacity: .6; box-shadow: 0 0 0 8px transparent; }
+    }
+    .hero h1 {
+        font-size: clamp(2.5rem, 7vw, 6rem);
+        font-weight: 700;
+        line-height: 1;
+        letter-spacing: -.03em;
+        margin-bottom: 28px;
+    }
+    .hero h1 .glitch { color: var(--neon); text-shadow: 2px 0 var(--neon2), -2px 0 var(--neon3); }
+    .hero p { color: var(--muted); font-size: 1.2rem; max-width: 620px; margin-bottom: 40px; line-height: 1.5; }
+    .hero-actions { display: flex; gap: 12px; }
+
+    /* Counter */
+    .ticker {
+        display: flex;
+        justify-content: space-between;
+        padding: 32px 0;
+        border-top: 1px solid rgba(255,255,255,.08);
+        border-bottom: 1px solid rgba(255,255,255,.08);
+        flex-wrap: wrap;
+        gap: 20px;
+    }
+    .ticker .item { font-family: 'JetBrains Mono', monospace; }
+    .ticker .n { font-size: 2.4rem; font-weight: 700; color: var(--neon); }
+    .ticker .l { color: var(--muted); font-size: .8rem; text-transform: uppercase; letter-spacing: .2em; }
+
+    /* Section */
+    section.pad { padding: 100px 0; }
+    h2.t {
+        font-size: clamp(2rem, 5vw, 3.5rem);
+        font-weight: 700;
+        letter-spacing: -.02em;
+        margin-bottom: 8px;
+    }
+    h2.t::before { content: '// '; color: var(--neon); font-family: 'JetBrains Mono', monospace; font-size: .7em; }
+    p.s { color: var(--muted); font-size: 1.05rem; margin-bottom: 48px; }
+
+    /* Artisti */
+    .artisti { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+    .artista {
+        position: relative;
+        aspect-ratio: 3/4;
+        overflow: hidden;
+        background: var(--bg2);
+        border: 1px solid rgba(255,255,255,.08);
+        transition: all .3s;
+    }
+    .artista::after {
+        content: '';
+        position: absolute; inset: 0;
+        background: linear-gradient(to top, rgba(0,255,163,.2), transparent 50%);
+        opacity: 0;
+        transition: opacity .3s;
+    }
+    .artista:hover { border-color: var(--neon); transform: translateY(-4px); }
+    .artista:hover::after { opacity: 1; }
+    .artista img { width: 100%; height: 100%; object-fit: cover; filter: grayscale(.3) contrast(1.1); transition: filter .3s; }
+    .artista:hover img { filter: none; }
+    .artista .meta {
+        position: absolute; left: 16px; right: 16px; bottom: 16px;
+        z-index: 2;
+    }
+    .artista .n { font-weight: 700; font-size: 1.15rem; }
+    .artista .g { color: var(--neon); font-family: 'JetBrains Mono', monospace; font-size: .75rem; text-transform: uppercase; letter-spacing: .15em; }
+
+    /* Dischi */
+    .dischi { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
+    .disco {
+        background: var(--bg2);
+        border: 1px solid rgba(255,255,255,.08);
+        padding: 14px;
+        transition: border-color .2s;
+    }
+    .disco:hover { border-color: var(--neon2); }
+    .disco .cover { aspect-ratio: 1; margin-bottom: 14px; background: #000; overflow: hidden; position: relative; }
+    .disco .cover img { width: 100%; height: 100%; object-fit: cover; }
+    .disco .cover::before {
+        content: '';
+        position: absolute; left: 50%; top: 50%;
+        width: 40px; height: 40px;
+        background: #000;
+        border-radius: 50%;
+        border: 2px solid rgba(255,255,255,.2);
+        transform: translate(-50%, -50%);
+        z-index: 2;
+    }
+    .disco .cover::after {
+        content: '';
+        position: absolute; left: 50%; top: 50%;
+        width: 8px; height: 8px;
+        background: var(--neon);
+        border-radius: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 3;
+    }
+    .disco .t { font-weight: 600; font-size: 1rem; margin-bottom: 4px; }
+    .disco .y { color: var(--muted); font-family: 'JetBrains Mono', monospace; font-size: .8rem; }
+
+    /* Eventi */
+    .evento {
+        display: grid;
+        grid-template-columns: 140px 1fr auto;
+        gap: 24px;
+        padding: 24px;
+        border: 1px solid rgba(255,255,255,.08);
+        margin-bottom: 12px;
+        transition: all .2s;
+        align-items: center;
+    }
+    .evento:hover { border-color: var(--neon); background: rgba(0,255,163,.03); }
+    .evento .dt { font-family: 'JetBrains Mono', monospace; color: var(--neon); font-size: 1.1rem; font-weight: 700; }
+    .evento .place { color: var(--muted); font-size: .9rem; }
+    .evento .tit { font-weight: 600; font-size: 1.2rem; }
+
+    /* News */
+    .news { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
+    .ncard {
+        background: var(--bg2);
+        border: 1px solid rgba(255,255,255,.08);
+        overflow: hidden;
+        transition: transform .2s;
+    }
+    .ncard:hover { transform: translateY(-4px); }
+    .ncard .i { aspect-ratio: 16/9; background: #000; overflow: hidden; }
+    .ncard .i img { width: 100%; height: 100%; object-fit: cover; filter: contrast(1.1); }
+    .ncard .bd { padding: 20px; }
+    .ncard .c { color: var(--neon); font-family: 'JetBrains Mono', monospace; font-size: .75rem; text-transform: uppercase; letter-spacing: .15em; margin-bottom: 8px; }
+    .ncard .tit { font-weight: 600; font-size: 1.1rem; margin-bottom: 8px; }
+    .ncard .ex { color: var(--muted); font-size: .9rem; line-height: 1.5; }
+
+    /* Servizi */
+    .servizi { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+    .srv {
+        padding: 28px;
+        background: var(--bg2);
+        border: 1px solid rgba(255,255,255,.08);
+        position: relative;
+        overflow: hidden;
+    }
+    .srv::before {
+        content: '';
+        position: absolute; top: 0; left: 0;
+        height: 2px; width: 0;
+        background: var(--neon);
+        transition: width .3s;
+    }
+    .srv:hover::before { width: 100%; }
+    .srv i { color: var(--neon); font-size: 2rem; margin-bottom: 16px; display: block; }
+    .srv .n { font-weight: 600; font-size: 1.1rem; margin-bottom: 8px; }
+    .srv .d { color: var(--muted); font-size: .9rem; line-height: 1.5; }
+
+    /* CTA */
+    .cta-box {
+        background: linear-gradient(135deg, rgba(0,255,163,.1), rgba(255,0,110,.1));
+        border: 1px solid rgba(0,255,163,.3);
+        padding: 72px 40px;
+        text-align: center;
+        margin: 40px 0;
+    }
+    .cta-box h2 { font-size: clamp(1.8rem, 4vw, 3rem); font-weight: 700; margin-bottom: 16px; }
+    .cta-box p { color: var(--muted); font-size: 1.1rem; margin-bottom: 32px; }
+
+    footer { border-top: 1px solid rgba(255,255,255,.08); padding: 60px 0 30px; color: var(--muted); }
+    footer .container { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 32px; }
+    footer h4 { color: var(--text); font-family: 'JetBrains Mono', monospace; font-size: .8rem; text-transform: uppercase; letter-spacing: .2em; margin-bottom: 14px; }
+    footer ul { list-style: none; }
+    footer ul li { margin-bottom: 8px; font-size: .9rem; }
+    footer ul a:hover { color: var(--neon); }
+
+    @media (max-width: 720px) {
+        nav ul { display: none; }
+        .evento { grid-template-columns: 1fr; gap: 8px; }
+    }
+</style>
+</head>
+<body>
+<main>
+<nav>
+    <div class="container">
+        <div class="logo">MAQUETA<b>_</b></div>
+        <ul>
+            <li><a href="#artisti">artisti</a></li>
+            <li><a href="#dischi">dischi</a></li>
+            <li><a href="#live">live</a></li>
+            <li><a href="#news">news</a></li>
+        </ul>
+        <a href="{{ url_for('login') }}" class="btn-neon">LOGIN →</a>
+    </div>
+</nav>
+
+<section class="hero">
+    <div class="container">
+        <div class="hero-tag"><span class="dot"></span> <span class="mono">BROADCAST LIVE · {{ artisti_tutti|length }} ARTISTS ONLINE</span></div>
+        <h1>Underground<br><span class="glitch">frequencies.</span></h1>
+        <p>Etichetta indipendente. Produciamo suono che non trovi nei feed mainstream. Club, sale, festival, vinili, streaming.</p>
+        <div class="hero-actions">
+            <a href="#artisti" class="btn-neon">ESPLORA ROSTER</a>
+            <a href="#live" class="btn-ghost">LIVE SHOWS →</a>
+        </div>
+    </div>
+</section>
+
+<div class="container">
+    <div class="ticker">
+        <div class="item"><div class="n">{{ '%03d'|format(artisti_tutti|length) }}</div><div class="l">Artisti</div></div>
+        <div class="item"><div class="n">{{ '%03d'|format(dischi|length) }}</div><div class="l">Releases</div></div>
+        <div class="item"><div class="n">{{ '%03d'|format(singoli|length) }}</div><div class="l">Singoli</div></div>
+        <div class="item"><div class="n">{{ '%03d'|format(eventi|length) }}</div><div class="l">Live Booked</div></div>
+        <div class="item"><div class="n">{{ '%03d'|format(servizi|length) }}</div><div class="l">Services</div></div>
+    </div>
+</div>
+
+<section class="pad" id="artisti">
+    <div class="container">
+        <h2 class="t">Roster</h2>
+        <p class="s">Suoni da club, da cantina, da palazzetto. Tutti qui.</p>
+        <div class="artisti">
+            {% for a in artisti %}
+            <div class="artista">
+                {% if a.foto %}
+                <img src="{{ url_for('static', filename='uploads/' + a.foto) }}" alt="{{ a.nome_display }}">
+                {% else %}
+                <div style="width:100%;height:100%;background:linear-gradient(135deg,#101018,#00ffa3);"></div>
+                {% endif %}
+                <div class="meta">
+                    <div class="g">{{ a.tipo_display }}{% if a.genere %} / {{ a.genere }}{% endif %}</div>
+                    <div class="n">{{ a.nome_display }}</div>
+                </div>
+            </div>
+            {% else %}
+            <p style="color:var(--muted);">Nessun artista.</p>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<section class="pad" id="dischi">
+    <div class="container">
+        <h2 class="t">Releases</h2>
+        <p class="s">Ultime uscite. Streaming e vinili limitati.</p>
+        <div class="dischi">
+            {% for d in dischi %}
+            <div class="disco">
+                <div class="cover">
+                    {% if d.copertina %}
+                    <img src="{{ url_for('static', filename='uploads/' + d.copertina) }}" alt="{{ d.titolo }}">
+                    {% else %}
+                    <div style="width:100%;height:100%;background:radial-gradient(circle,#101018,#000);"></div>
+                    {% endif %}
+                </div>
+                <div class="t">{{ d.titolo }}</div>
+                <div class="y">{{ d.tipo_display|upper }}{% if d.anno_uscita %} · {{ d.anno_uscita }}{% endif %}</div>
+            </div>
+            {% else %}
+            <p style="color:var(--muted);">Nessun disco.</p>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<section class="pad" id="live">
+    <div class="container">
+        <h2 class="t">Live Shows</h2>
+        <p class="s">Le prossime date. Non mancare.</p>
+        <div>
+            {% for e in eventi %}
+            <div class="evento">
+                <div class="dt">
+                    {% if e.data_evento %}{{ e.data_evento.strftime('%d.%m.%Y') }}{% endif %}
+                    {% if e.ora_inizio %}<br><span style="color:var(--muted);">{{ e.ora_inizio.strftime('%H:%M') if e.ora_inizio.strftime is defined else e.ora_inizio }}</span>{% endif %}
+                </div>
+                <div>
+                    <div class="tit">{{ e.titolo }}</div>
+                    <div class="place">{{ e.luogo_completo or e.venue or '-' }}</div>
+                </div>
+                {% if e.link_biglietti %}
+                <a href="{{ e.link_biglietti }}" class="btn-neon">{% if e.sold_out %}SOLD OUT{% else %}BIGLIETTI →{% endif %}</a>
+                {% else %}
+                <span class="mono" style="color:var(--muted);">INFO →</span>
+                {% endif %}
+            </div>
+            {% else %}
+            <p style="color:var(--muted);">Nessun evento in programma.</p>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<section class="pad" id="news">
+    <div class="container">
+        <h2 class="t">Transmissions</h2>
+        <p class="s">News, interviste, retroscena.</p>
+        <div class="news">
+            {% for n in news %}
+            <div class="ncard">
+                <div class="i">
+                    {% if n.immagine %}
+                    <img src="{{ url_for('static', filename='uploads/' + n.immagine) }}" alt="{{ n.titolo }}">
+                    {% endif %}
+                </div>
+                <div class="bd">
+                    {% if n.categoria %}<div class="c">// {{ n.categoria }}</div>{% endif %}
+                    <div class="tit">{{ n.titolo }}</div>
+                    <div class="ex">{{ n.estratto or '' }}</div>
+                </div>
+            </div>
+            {% else %}
+            <p style="color:var(--muted);">Nessuna trasmissione.</p>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<section class="pad">
+    <div class="container">
+        <h2 class="t">Services</h2>
+        <p class="s">Cosa offriamo ad artisti e producer.</p>
+        <div class="servizi">
+            {% for s in servizi %}
+            <div class="srv">
+                <i class="bi {{ s.icona }}"></i>
+                <div class="n">{{ s.nome }}</div>
+                <div class="d">{{ s.descrizione_breve or s.descrizione or '' }}</div>
+            </div>
+            {% else %}
+            <p style="color:var(--muted);">Nessun servizio.</p>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<div class="container">
+    <div class="cta-box">
+        <div class="mono" style="color:var(--neon);margin-bottom:16px;font-size:.85rem;">&gt; SEND YOUR DEMO</div>
+        <h2>Hai un suono.<br>Fallo ascoltare.</h2>
+        <p>Mandaci la tua maqueta. Risposta entro 10 giorni, sempre.</p>
+        <a href="{{ url_for('login') }}" class="btn-neon">APRI PORTALE ARTISTI →</a>
+    </div>
+</div>
+
+<footer>
+    <div class="container">
+        <div>
+            <div class="logo" style="margin-bottom:12px;">MAQUETA<b>_</b></div>
+            <p style="font-size:.85rem;">Underground frequencies since 2020.</p>
+        </div>
+        <div>
+            <h4>Navigate</h4>
+            <ul>
+                <li><a href="#artisti">Artists</a></li>
+                <li><a href="#dischi">Releases</a></li>
+                <li><a href="#live">Live</a></li>
+            </ul>
+        </div>
+        <div>
+            <h4>Style</h4>
+            <ul>
+                <li><a href="{{ url_for('landing_moderno') }}">Moderno</a></li>
+                <li><a href="{{ url_for('landing_elegante') }}">Elegante</a></li>
+                <li><a href="{{ url_for('landing_creativo') }}">Creativo</a></li>
+                <li><a href="{{ url_for('landing_magazine') }}">Magazine</a></li>
+            </ul>
+        </div>
+        <div>
+            <h4>Contact</h4>
+            <ul>
+                <li>demo@maquetaweb.it</li>
+                <li>booking@maquetaweb.it</li>
+            </ul>
+        </div>
+    </div>
+    <div class="container mono" style="margin-top:48px;padding-top:24px;border-top:1px solid rgba(255,255,255,.08);font-size:.8rem;color:var(--muted);">
+        © 2026 MAQUETA_ // ALL FREQUENCIES RESERVED
+    </div>
+</footer>
+</main>
+</body>
+</html>

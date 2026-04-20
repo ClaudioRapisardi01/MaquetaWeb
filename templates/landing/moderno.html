@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Maqueta Web - Moderno</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+<style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+        font-family: 'Inter', sans-serif;
+        color: #0f172a;
+        background: #fff;
+        -webkit-font-smoothing: antialiased;
+    }
+    a { color: inherit; text-decoration: none; }
+    .container { max-width: 1280px; margin: 0 auto; padding: 0 32px; }
+
+    /* Nav */
+    nav {
+        position: sticky; top: 0; z-index: 100;
+        background: rgba(255,255,255,.85);
+        backdrop-filter: blur(12px);
+        border-bottom: 1px solid #e2e8f0;
+        padding: 18px 0;
+    }
+    nav .container { display: flex; justify-content: space-between; align-items: center; }
+    .logo { font-weight: 900; font-size: 1.35rem; letter-spacing: -.02em; }
+    .logo span { color: #6366f1; }
+    nav ul { display: flex; gap: 32px; list-style: none; }
+    nav ul a { font-size: .95rem; font-weight: 500; color: #475569; transition: color .2s; }
+    nav ul a:hover { color: #0f172a; }
+    .btn {
+        display: inline-block; padding: 12px 24px;
+        background: #0f172a; color: #fff;
+        border-radius: 8px; font-weight: 500;
+        transition: background .2s;
+    }
+    .btn:hover { background: #1e293b; }
+    .btn-outline { background: transparent; color: #0f172a; border: 1px solid #cbd5e1; }
+
+    /* Hero */
+    .hero { padding: 100px 0 80px; }
+    .hero h1 {
+        font-size: clamp(2.5rem, 6vw, 5rem);
+        font-weight: 800;
+        letter-spacing: -.03em;
+        line-height: 1;
+        margin-bottom: 24px;
+    }
+    .hero h1 em { font-style: normal; background: linear-gradient(90deg, #6366f1, #ec4899); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .hero p { font-size: 1.25rem; color: #64748b; max-width: 640px; margin-bottom: 40px; line-height: 1.5; }
+    .hero-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+
+    /* Stats */
+    .stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 32px;
+        padding: 48px 0;
+        border-top: 1px solid #e2e8f0;
+        border-bottom: 1px solid #e2e8f0;
+    }
+    .stat .num { font-size: 2.5rem; font-weight: 800; letter-spacing: -.02em; }
+    .stat .lbl { color: #64748b; font-size: .95rem; }
+
+    /* Sections */
+    section.pad { padding: 100px 0; }
+    h2.sec-title {
+        font-size: clamp(2rem, 4vw, 3rem);
+        font-weight: 800;
+        letter-spacing: -.02em;
+        margin-bottom: 8px;
+    }
+    p.sec-sub { color: #64748b; font-size: 1.1rem; margin-bottom: 48px; }
+
+    /* Artisti grid */
+    .artisti-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 24px; }
+    .artista {
+        border-radius: 12px;
+        overflow: hidden;
+        aspect-ratio: 3/4;
+        position: relative;
+        background: #f1f5f9;
+    }
+    .artista img { width: 100%; height: 100%; object-fit: cover; transition: transform .4s; }
+    .artista:hover img { transform: scale(1.05); }
+    .artista .overlay {
+        position: absolute; inset: 0;
+        background: linear-gradient(to top, rgba(0,0,0,.75), transparent 60%);
+        display: flex; align-items: flex-end; padding: 20px;
+        color: #fff;
+    }
+    .artista .nome { font-weight: 700; font-size: 1.15rem; }
+    .artista .tipo { font-size: .85rem; opacity: .85; }
+
+    /* Dischi */
+    .dischi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 24px; }
+    .disco .cover { aspect-ratio: 1; border-radius: 8px; overflow: hidden; background: #f1f5f9; margin-bottom: 12px; }
+    .disco .cover img { width: 100%; height: 100%; object-fit: cover; }
+    .disco .titolo { font-weight: 600; }
+    .disco .meta { color: #64748b; font-size: .9rem; }
+
+    /* Eventi */
+    .eventi-list { display: flex; flex-direction: column; gap: 0; }
+    .evento {
+        display: grid;
+        grid-template-columns: 100px 1fr auto;
+        gap: 24px;
+        padding: 24px 0;
+        border-bottom: 1px solid #e2e8f0;
+        align-items: center;
+    }
+    .evento .data { text-align: center; }
+    .evento .data .d { font-size: 2rem; font-weight: 800; line-height: 1; }
+    .evento .data .m { font-size: .8rem; text-transform: uppercase; color: #64748b; letter-spacing: .1em; }
+    .evento .info .titolo { font-weight: 600; font-size: 1.1rem; margin-bottom: 4px; }
+    .evento .info .luogo { color: #64748b; font-size: .95rem; }
+
+    /* News */
+    .news-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 28px; }
+    .news-card { border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; transition: border-color .2s; }
+    .news-card:hover { border-color: #0f172a; }
+    .news-card .img { aspect-ratio: 16/9; background: #f1f5f9; overflow: hidden; }
+    .news-card .img img { width: 100%; height: 100%; object-fit: cover; }
+    .news-card .body { padding: 20px; }
+    .news-card .cat { font-size: .8rem; color: #6366f1; text-transform: uppercase; letter-spacing: .1em; font-weight: 600; margin-bottom: 8px; }
+    .news-card .tit { font-weight: 600; font-size: 1.1rem; margin-bottom: 8px; line-height: 1.3; }
+    .news-card .ext { color: #64748b; font-size: .9rem; line-height: 1.5; }
+
+    /* CTA */
+    .cta {
+        background: #0f172a;
+        color: #fff;
+        border-radius: 24px;
+        padding: 72px 48px;
+        text-align: center;
+        margin: 48px 0;
+    }
+    .cta h2 { font-size: clamp(2rem, 4vw, 3rem); font-weight: 800; margin-bottom: 16px; letter-spacing: -.02em; }
+    .cta p { color: #94a3b8; font-size: 1.15rem; margin-bottom: 32px; }
+    .cta .btn { background: #fff; color: #0f172a; }
+
+    /* Footer */
+    footer { background: #0f172a; color: #94a3b8; padding: 60px 0 30px; }
+    footer .container { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 40px; }
+    footer h4 { color: #fff; font-size: .9rem; text-transform: uppercase; letter-spacing: .1em; margin-bottom: 16px; }
+    footer ul { list-style: none; }
+    footer ul li { margin-bottom: 8px; font-size: .9rem; }
+    footer ul a:hover { color: #fff; }
+    .credits { border-top: 1px solid #1e293b; margin-top: 48px; padding-top: 24px; font-size: .85rem; text-align: center; }
+
+    @media (max-width: 768px) {
+        nav ul { display: none; }
+        .evento { grid-template-columns: 80px 1fr; }
+        .evento .btn { grid-column: 2; justify-self: start; margin-top: 12px; }
+    }
+</style>
+</head>
+<body>
+<nav>
+    <div class="container">
+        <div class="logo">Maqueta<span>.</span></div>
+        <ul>
+            <li><a href="#artisti">Artisti</a></li>
+            <li><a href="#dischi">Dischi</a></li>
+            <li><a href="#eventi">Eventi</a></li>
+            <li><a href="#news">News</a></li>
+            <li><a href="#servizi">Servizi</a></li>
+        </ul>
+        <a href="{{ url_for('login') }}" class="btn">Accedi</a>
+    </div>
+</nav>
+
+<section class="hero">
+    <div class="container">
+        <h1>La tua musica, <em>il nostro palco.</em></h1>
+        <p>Etichetta indipendente che promuove artisti, dischi ed eventi live. Scopri i talenti che stanno cambiando la scena.</p>
+        <div class="hero-actions">
+            <a href="#artisti" class="btn">Esplora gli artisti <i class="bi bi-arrow-right"></i></a>
+            <a href="#eventi" class="btn btn-outline">Prossimi eventi</a>
+        </div>
+    </div>
+</section>
+
+<div class="container">
+    <div class="stats">
+        <div class="stat"><div class="num">{{ artisti_tutti|length }}</div><div class="lbl">Artisti in roster</div></div>
+        <div class="stat"><div class="num">{{ dischi|length }}+</div><div class="lbl">Dischi pubblicati</div></div>
+        <div class="stat"><div class="num">{{ eventi|length }}</div><div class="lbl">Eventi in arrivo</div></div>
+        <div class="stat"><div class="num">{{ news|length }}</div><div class="lbl">News recenti</div></div>
+    </div>
+</div>
+
+<section class="pad" id="artisti">
+    <div class="container">
+        <h2 class="sec-title">Artisti in evidenza</h2>
+        <p class="sec-sub">I nomi che stiamo portando in giro per l'Italia e oltre.</p>
+        <div class="artisti-grid">
+            {% for a in artisti %}
+            <div class="artista">
+                {% if a.foto %}
+                <img src="{{ url_for('static', filename='uploads/' + a.foto) }}" alt="{{ a.nome_display }}">
+                {% else %}
+                <div style="width:100%;height:100%;background:linear-gradient(135deg,#6366f1,#ec4899);display:flex;align-items:center;justify-content:center;color:#fff;font-size:3rem;font-weight:800;">{{ a.nome_display[0] }}</div>
+                {% endif %}
+                <div class="overlay">
+                    <div>
+                        <div class="nome">{{ a.nome_display }}</div>
+                        <div class="tipo">{{ a.tipo_display }}{% if a.genere %} · {{ a.genere }}{% endif %}</div>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <p style="color:#64748b;">Nessun artista ancora.</p>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<section class="pad" id="dischi" style="background:#f8fafc;">
+    <div class="container">
+        <h2 class="sec-title">Ultime uscite</h2>
+        <p class="sec-sub">Gli album, gli EP e i singoli pubblicati di recente.</p>
+        <div class="dischi-grid">
+            {% for d in dischi %}
+            <div class="disco">
+                <div class="cover">
+                    {% if d.copertina %}
+                    <img src="{{ url_for('static', filename='uploads/' + d.copertina) }}" alt="{{ d.titolo }}">
+                    {% else %}
+                    <div style="width:100%;height:100%;background:linear-gradient(45deg,#0f172a,#6366f1);"></div>
+                    {% endif %}
+                </div>
+                <div class="titolo">{{ d.titolo }}</div>
+                <div class="meta">{{ d.tipo_display }}{% if d.anno_uscita %} · {{ d.anno_uscita }}{% endif %}</div>
+            </div>
+            {% else %}
+            <p style="color:#64748b;">Nessun disco pubblicato.</p>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<section class="pad" id="eventi">
+    <div class="container">
+        <h2 class="sec-title">Prossimi eventi</h2>
+        <p class="sec-sub">Concerti, festival e showcase. Prenota il tuo posto.</p>
+        <div class="eventi-list">
+            {% for e in eventi %}
+            <div class="evento">
+                <div class="data">
+                    {% if e.data_evento %}
+                    <div class="d">{{ e.data_evento.strftime('%d') }}</div>
+                    <div class="m">{{ e.data_evento.strftime('%b') }}</div>
+                    {% endif %}
+                </div>
+                <div class="info">
+                    <div class="titolo">{{ e.titolo }}</div>
+                    <div class="luogo">{{ e.luogo_completo or e.venue or '-' }}</div>
+                </div>
+                {% if e.link_biglietti %}
+                <a href="{{ e.link_biglietti }}" class="btn btn-outline">Biglietti</a>
+                {% endif %}
+            </div>
+            {% else %}
+            <p style="color:#64748b;">Nessun evento in programma.</p>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<section class="pad" id="news" style="background:#f8fafc;">
+    <div class="container">
+        <h2 class="sec-title">Dal blog</h2>
+        <p class="sec-sub">Novità, interviste e retroscena.</p>
+        <div class="news-grid">
+            {% for n in news %}
+            <div class="news-card">
+                <div class="img">
+                    {% if n.immagine %}
+                    <img src="{{ url_for('static', filename='uploads/' + n.immagine) }}" alt="{{ n.titolo }}">
+                    {% endif %}
+                </div>
+                <div class="body">
+                    {% if n.categoria %}<div class="cat">{{ n.categoria }}</div>{% endif %}
+                    <div class="tit">{{ n.titolo }}</div>
+                    <div class="ext">{{ n.estratto or '' }}</div>
+                </div>
+            </div>
+            {% else %}
+            <p style="color:#64748b;">Nessuna news disponibile.</p>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<section class="pad" id="servizi">
+    <div class="container">
+        <h2 class="sec-title">Cosa offriamo</h2>
+        <p class="sec-sub">Servizi pensati per artisti e produttori musicali.</p>
+        <div class="news-grid">
+            {% for s in servizi %}
+            <div class="news-card">
+                <div class="body">
+                    <i class="bi {{ s.icona }}" style="font-size:2rem;color:#6366f1;margin-bottom:16px;display:block;"></i>
+                    <div class="tit">{{ s.nome }}</div>
+                    <div class="ext">{{ s.descrizione_breve or s.descrizione or '' }}</div>
+                    {% if s.prezzo %}<div style="margin-top:12px;font-weight:600;">€ {{ '%.2f'|format(s.prezzo) }}</div>{% endif %}
+                </div>
+            </div>
+            {% else %}
+            <p style="color:#64748b;">Nessun servizio disponibile.</p>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<div class="container">
+    <div class="cta">
+        <h2>Pronto a suonare con noi?</h2>
+        <p>Mandaci la tua maqueta. La ascoltiamo sul serio.</p>
+        <a href="{{ url_for('login') }}" class="btn">Area riservata <i class="bi bi-arrow-right"></i></a>
+    </div>
+</div>
+
+<footer>
+    <div class="container">
+        <div>
+            <div class="logo" style="color:#fff;margin-bottom:12px;">Maqueta<span>.</span></div>
+            <p style="font-size:.9rem;">Etichetta indipendente. Musica, eventi, cultura.</p>
+        </div>
+        <div>
+            <h4>Esplora</h4>
+            <ul>
+                <li><a href="#artisti">Artisti</a></li>
+                <li><a href="#dischi">Dischi</a></li>
+                <li><a href="#eventi">Eventi</a></li>
+            </ul>
+        </div>
+        <div>
+            <h4>Altri stili</h4>
+            <ul>
+                <li><a href="{{ url_for('landing_scuro') }}">Dark / Neon</a></li>
+                <li><a href="{{ url_for('landing_elegante') }}">Elegante</a></li>
+                <li><a href="{{ url_for('landing_creativo') }}">Creativo</a></li>
+                <li><a href="{{ url_for('landing_magazine') }}">Magazine</a></li>
+            </ul>
+        </div>
+        <div>
+            <h4>Contatti</h4>
+            <ul>
+                <li>info@maquetaweb.it</li>
+                <li>+39 000 000 0000</li>
+            </ul>
+        </div>
+    </div>
+    <div class="credits container">© {{ 2026 }} Maqueta Web. Tutti i diritti riservati.</div>
+</footer>
+</body>
+</html>

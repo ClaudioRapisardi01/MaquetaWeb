@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Maqueta Web - Elegante</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+<style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+        --gold: #c9a961;
+        --gold-dark: #8b7532;
+        --ink: #111111;
+        --cream: #f5f1e8;
+        --paper: #faf7f0;
+        --muted: #6b6b6b;
+    }
+    body {
+        font-family: 'Cormorant Garamond', serif;
+        background: var(--paper);
+        color: var(--ink);
+        font-size: 18px;
+        line-height: 1.6;
+    }
+    a { color: inherit; text-decoration: none; }
+    .sans { font-family: 'Montserrat', sans-serif; }
+    .container { max-width: 1200px; margin: 0 auto; padding: 0 40px; }
+
+    /* Nav */
+    nav {
+        padding: 32px 0;
+        border-bottom: 1px solid rgba(17,17,17,.1);
+        background: var(--paper);
+    }
+    nav .container { display: flex; justify-content: space-between; align-items: center; }
+    .logo {
+        font-family: 'Cormorant Garamond', serif;
+        font-size: 1.75rem;
+        font-weight: 500;
+        letter-spacing: .05em;
+    }
+    .logo .amp { color: var(--gold); font-style: italic; }
+    nav ul { display: flex; gap: 40px; list-style: none; }
+    nav ul a {
+        font-family: 'Montserrat', sans-serif;
+        font-size: .8rem;
+        text-transform: uppercase;
+        letter-spacing: .2em;
+        color: var(--muted);
+        transition: color .2s;
+    }
+    nav ul a:hover { color: var(--gold); }
+
+    .btn {
+        font-family: 'Montserrat', sans-serif;
+        display: inline-block;
+        padding: 14px 36px;
+        background: var(--ink);
+        color: var(--paper);
+        font-size: .75rem;
+        text-transform: uppercase;
+        letter-spacing: .25em;
+        border: none;
+        transition: all .3s;
+    }
+    .btn:hover { background: var(--gold); color: var(--ink); }
+    .btn-outline {
+        background: transparent;
+        color: var(--ink);
+        border: 1px solid var(--ink);
+    }
+    .btn-outline:hover { background: var(--ink); color: var(--paper); }
+
+    /* Hero */
+    .hero {
+        padding: 100px 0;
+        text-align: center;
+        position: relative;
+    }
+    .hero .ornament {
+        font-size: 1.5rem;
+        color: var(--gold);
+        letter-spacing: 1em;
+        margin-bottom: 24px;
+    }
+    .hero .kicker {
+        font-family: 'Montserrat', sans-serif;
+        font-size: .8rem;
+        text-transform: uppercase;
+        letter-spacing: .5em;
+        color: var(--gold-dark);
+        margin-bottom: 24px;
+    }
+    .hero h1 {
+        font-size: clamp(3rem, 8vw, 6.5rem);
+        font-weight: 300;
+        line-height: 1.1;
+        letter-spacing: -.01em;
+        margin-bottom: 32px;
+    }
+    .hero h1 em { font-weight: 400; color: var(--gold-dark); }
+    .hero p {
+        font-size: 1.3rem;
+        font-style: italic;
+        color: var(--muted);
+        max-width: 680px;
+        margin: 0 auto 48px;
+    }
+    .divider {
+        width: 60px; height: 1px; background: var(--gold);
+        margin: 48px auto;
+    }
+
+    /* Sections */
+    section.sec { padding: 120px 0; }
+    .sec-head { text-align: center; margin-bottom: 72px; }
+    .sec-kicker {
+        font-family: 'Montserrat', sans-serif;
+        font-size: .75rem;
+        text-transform: uppercase;
+        letter-spacing: .4em;
+        color: var(--gold-dark);
+        margin-bottom: 16px;
+    }
+    .sec-title {
+        font-size: clamp(2.2rem, 5vw, 3.8rem);
+        font-weight: 400;
+        letter-spacing: -.01em;
+    }
+    .sec-sub {
+        font-size: 1.15rem;
+        font-style: italic;
+        color: var(--muted);
+        max-width: 600px;
+        margin: 12px auto 0;
+    }
+
+    /* Artisti */
+    .roster { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 60px 32px; }
+    .artista { text-align: center; }
+    .artista .pic {
+        width: 100%;
+        aspect-ratio: 4/5;
+        overflow: hidden;
+        position: relative;
+        margin-bottom: 20px;
+    }
+    .artista .pic::before {
+        content: ''; position: absolute; inset: 12px;
+        border: 1px solid var(--gold);
+        z-index: 2;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity .4s;
+    }
+    .artista:hover .pic::before { opacity: 1; }
+    .artista .pic img { width: 100%; height: 100%; object-fit: cover; filter: grayscale(.5); transition: filter .4s; }
+    .artista:hover .pic img { filter: none; }
+    .artista .nome {
+        font-size: 1.5rem;
+        font-weight: 500;
+        letter-spacing: .02em;
+    }
+    .artista .tipo {
+        font-family: 'Montserrat', sans-serif;
+        font-size: .7rem;
+        text-transform: uppercase;
+        letter-spacing: .3em;
+        color: var(--gold-dark);
+        margin-top: 8px;
+    }
+
+    /* Dischi */
+    .dischi-sec { background: var(--ink); color: var(--cream); }
+    .dischi-sec .sec-kicker { color: var(--gold); }
+    .dischi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 40px; }
+    .disco { text-align: center; }
+    .disco .cover {
+        aspect-ratio: 1;
+        margin-bottom: 20px;
+        position: relative;
+        overflow: hidden;
+        border: 1px solid rgba(201,169,97,.3);
+    }
+    .disco .cover img { width: 100%; height: 100%; object-fit: cover; }
+    .disco .titolo { font-size: 1.4rem; font-weight: 500; margin-bottom: 4px; }
+    .disco .info { font-family: 'Montserrat', sans-serif; font-size: .75rem; text-transform: uppercase; letter-spacing: .2em; color: var(--gold); }
+
+    /* Eventi */
+    .evento-row {
+        display: grid;
+        grid-template-columns: 180px 1fr auto;
+        gap: 48px;
+        padding: 36px 0;
+        border-bottom: 1px solid rgba(17,17,17,.1);
+        align-items: center;
+    }
+    .evento-row:first-child { border-top: 1px solid rgba(17,17,17,.1); }
+    .evento-row .data-box {
+        font-family: 'Cormorant Garamond', serif;
+        text-align: left;
+    }
+    .evento-row .data-box .giorno { font-size: 3.5rem; line-height: 1; font-weight: 300; color: var(--gold-dark); }
+    .evento-row .data-box .mese { font-family: 'Montserrat', sans-serif; font-size: .75rem; text-transform: uppercase; letter-spacing: .3em; color: var(--muted); margin-top: 4px; }
+    .evento-row .dettagli .titolo { font-size: 1.6rem; font-weight: 500; margin-bottom: 6px; }
+    .evento-row .dettagli .luogo { font-style: italic; color: var(--muted); }
+
+    /* News */
+    .news-featured { display: grid; grid-template-columns: 1.2fr 1fr; gap: 60px; align-items: center; }
+    .news-featured .img { aspect-ratio: 4/3; overflow: hidden; }
+    .news-featured .img img { width: 100%; height: 100%; object-fit: cover; filter: grayscale(.2); }
+    .news-featured .cat {
+        font-family: 'Montserrat', sans-serif;
+        font-size: .75rem;
+        text-transform: uppercase;
+        letter-spacing: .3em;
+        color: var(--gold-dark);
+        margin-bottom: 16px;
+    }
+    .news-featured h3 {
+        font-size: clamp(1.8rem, 3.5vw, 2.8rem);
+        font-weight: 400;
+        line-height: 1.2;
+        margin-bottom: 20px;
+    }
+    .news-featured p { font-size: 1.15rem; color: var(--muted); margin-bottom: 28px; font-style: italic; }
+    .news-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 40px; margin-top: 72px; }
+    .nr .img { aspect-ratio: 4/3; margin-bottom: 16px; overflow: hidden; }
+    .nr .img img { width: 100%; height: 100%; object-fit: cover; }
+    .nr .cat { font-family: 'Montserrat', sans-serif; font-size: .7rem; text-transform: uppercase; letter-spacing: .25em; color: var(--gold-dark); margin-bottom: 8px; }
+    .nr h4 { font-size: 1.4rem; font-weight: 500; }
+
+    /* Servizi */
+    .servizi-sec { background: var(--cream); }
+    .servizi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 48px; }
+    .srv { text-align: center; }
+    .srv .circ {
+        width: 80px; height: 80px;
+        border: 1px solid var(--gold);
+        border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        margin: 0 auto 24px;
+        color: var(--gold-dark);
+        font-size: 1.8rem;
+    }
+    .srv .n { font-size: 1.4rem; font-weight: 500; margin-bottom: 12px; }
+    .srv .d { color: var(--muted); font-style: italic; }
+
+    /* CTA */
+    .cta-sec {
+        background: var(--ink);
+        color: var(--cream);
+        padding: 120px 0;
+        text-align: center;
+    }
+    .cta-sec h2 {
+        font-size: clamp(2.5rem, 6vw, 4.5rem);
+        font-weight: 300;
+        line-height: 1.1;
+        margin-bottom: 24px;
+    }
+    .cta-sec h2 em { color: var(--gold); font-weight: 400; }
+    .cta-sec p { font-size: 1.2rem; font-style: italic; color: #b8b8b8; margin-bottom: 40px; }
+
+    footer { padding: 60px 0 40px; border-top: 1px solid rgba(17,17,17,.1); }
+    footer .container { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 40px; }
+    footer h5 { font-family: 'Montserrat', sans-serif; font-size: .75rem; text-transform: uppercase; letter-spacing: .3em; margin-bottom: 20px; color: var(--gold-dark); }
+    footer ul { list-style: none; }
+    footer ul li { margin-bottom: 10px; }
+    footer ul a { font-size: 1.05rem; }
+    footer ul a:hover { color: var(--gold-dark); font-style: italic; }
+    .credits { text-align: center; padding-top: 40px; margin-top: 40px; border-top: 1px solid rgba(17,17,17,.1); color: var(--muted); font-style: italic; }
+
+    @media (max-width: 768px) {
+        nav ul { display: none; }
+        .news-featured { grid-template-columns: 1fr; }
+        .evento-row { grid-template-columns: 1fr; gap: 12px; text-align: left; }
+    }
+</style>
+</head>
+<body>
+<nav>
+    <div class="container">
+        <div class="logo">Maqueta <span class="amp">&amp;</span> Co.</div>
+        <ul>
+            <li><a href="#artisti">Artisti</a></li>
+            <li><a href="#catalogo">Catalogo</a></li>
+            <li><a href="#eventi">Calendario</a></li>
+            <li><a href="#news">Gazzetta</a></li>
+        </ul>
+        <a href="{{ url_for('login') }}" class="btn btn-outline">Riservata</a>
+    </div>
+</nav>
+
+<section class="hero">
+    <div class="container">
+        <div class="ornament">— ❧ —</div>
+        <div class="kicker">Dal 2020 — Casa Editrice Musicale</div>
+        <h1>L'arte del suono,<br>con <em>cura</em> artigianale.</h1>
+        <p>Un'etichetta che crede ancora nei dischi fatti come si deve. Artisti selezionati, produzioni curate, un catalogo che resta.</p>
+        <a href="#artisti" class="btn">Scopri il catalogo</a>
+    </div>
+</section>
+
+<section class="sec" id="artisti">
+    <div class="container">
+        <div class="sec-head">
+            <div class="sec-kicker">— Il Roster —</div>
+            <h2 class="sec-title">I nostri artisti</h2>
+            <p class="sec-sub">Una famiglia di voci, strumenti e storie. Scelte con attenzione, una a una.</p>
+        </div>
+        <div class="roster">
+            {% for a in artisti %}
+            <div class="artista">
+                <div class="pic">
+                    {% if a.foto %}
+                    <img src="{{ url_for('static', filename='uploads/' + a.foto) }}" alt="{{ a.nome_display }}">
+                    {% else %}
+                    <div style="width:100%;height:100%;background:linear-gradient(135deg,#c9a961,#111);display:flex;align-items:center;justify-content:center;color:#faf7f0;font-size:4rem;font-family:'Cormorant Garamond',serif;">{{ a.nome_display[0] }}</div>
+                    {% endif %}
+                </div>
+                <div class="nome">{{ a.nome_display }}</div>
+                <div class="tipo">{{ a.tipo_display }}{% if a.genere %} · {{ a.genere }}{% endif %}</div>
+            </div>
+            {% else %}
+            <p style="color:var(--muted);font-style:italic;">Il roster è in attesa di nuovi ingressi.</p>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<section class="sec dischi-sec" id="catalogo">
+    <div class="container">
+        <div class="sec-head">
+            <div class="sec-kicker">— Catalogo —</div>
+            <h2 class="sec-title">Le pubblicazioni</h2>
+            <p class="sec-sub">Album, EP, ristampe. Ogni uscita è un oggetto da conservare.</p>
+        </div>
+        <div class="dischi-grid">
+            {% for d in dischi %}
+            <div class="disco">
+                <div class="cover">
+                    {% if d.copertina %}
+                    <img src="{{ url_for('static', filename='uploads/' + d.copertina) }}" alt="{{ d.titolo }}">
+                    {% else %}
+                    <div style="width:100%;height:100%;background:linear-gradient(45deg,#111,#c9a961);"></div>
+                    {% endif %}
+                </div>
+                <div class="titolo">{{ d.titolo }}</div>
+                <div class="info">{{ d.tipo_display }}{% if d.anno_uscita %} · {{ d.anno_uscita }}{% endif %}</div>
+            </div>
+            {% else %}
+            <p style="color:var(--gold);font-style:italic;">Il catalogo sta prendendo forma.</p>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<section class="sec" id="eventi">
+    <div class="container">
+        <div class="sec-head">
+            <div class="sec-kicker">— Calendario —</div>
+            <h2 class="sec-title">Prossimi appuntamenti</h2>
+            <p class="sec-sub">Concerti e rassegne nelle sale e nei teatri d'Italia.</p>
+        </div>
+        <div>
+            {% for e in eventi %}
+            <div class="evento-row">
+                <div class="data-box">
+                    {% if e.data_evento %}
+                    <div class="giorno">{{ e.data_evento.strftime('%d') }}</div>
+                    <div class="mese">{{ e.data_evento.strftime('%B %Y') }}</div>
+                    {% endif %}
+                </div>
+                <div class="dettagli">
+                    <div class="titolo">{{ e.titolo }}</div>
+                    <div class="luogo">{{ e.luogo_completo or e.venue or '—' }}</div>
+                </div>
+                {% if e.link_biglietti %}
+                <a href="{{ e.link_biglietti }}" class="btn btn-outline">Prenota</a>
+                {% endif %}
+            </div>
+            {% else %}
+            <p style="color:var(--muted);font-style:italic;">Nessuna data in calendario.</p>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<section class="sec servizi-sec" id="news">
+    <div class="container">
+        <div class="sec-head">
+            <div class="sec-kicker">— La Gazzetta —</div>
+            <h2 class="sec-title">Notizie dal salotto</h2>
+        </div>
+        {% if news and news|length > 0 %}
+        <div class="news-featured">
+            <div class="img">
+                {% if news[0].immagine %}
+                <img src="{{ url_for('static', filename='uploads/' + news[0].immagine) }}" alt="{{ news[0].titolo }}">
+                {% else %}
+                <div style="width:100%;height:100%;background:linear-gradient(135deg,#c9a961,#faf7f0);"></div>
+                {% endif %}
+            </div>
+            <div>
+                {% if news[0].categoria %}<div class="cat">{{ news[0].categoria }}</div>{% endif %}
+                <h3>{{ news[0].titolo }}</h3>
+                <p>{{ news[0].estratto or '' }}</p>
+                <a href="#" class="btn">Leggi</a>
+            </div>
+        </div>
+        {% if news|length > 1 %}
+        <div class="news-list">
+            {% for n in news[1:] %}
+            <div class="nr">
+                <div class="img">
+                    {% if n.immagine %}
+                    <img src="{{ url_for('static', filename='uploads/' + n.immagine) }}" alt="{{ n.titolo }}">
+                    {% endif %}
+                </div>
+                {% if n.categoria %}<div class="cat">{{ n.categoria }}</div>{% endif %}
+                <h4>{{ n.titolo }}</h4>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% else %}
+        <p style="text-align:center;color:var(--muted);font-style:italic;">Ancora nessuna notizia.</p>
+        {% endif %}
+    </div>
+</section>
+
+<section class="sec">
+    <div class="container">
+        <div class="sec-head">
+            <div class="sec-kicker">— I Servizi —</div>
+            <h2 class="sec-title">Per artisti e produttori</h2>
+        </div>
+        <div class="servizi-grid">
+            {% for s in servizi %}
+            <div class="srv">
+                <div class="circ"><i class="bi {{ s.icona }}"></i></div>
+                <div class="n">{{ s.nome }}</div>
+                <div class="d">{{ s.descrizione_breve or s.descrizione or '' }}</div>
+            </div>
+            {% else %}
+            <p style="color:var(--muted);font-style:italic;text-align:center;grid-column:1/-1;">Servizi in definizione.</p>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<section class="cta-sec">
+    <div class="container">
+        <div class="ornament" style="color:var(--gold);">— ❧ —</div>
+        <h2>Scrivici una <em>lettera</em>,<br>non un'email qualunque.</h2>
+        <p>Ti rispondiamo sempre. Con cura, come si fa tra persone.</p>
+        <a href="{{ url_for('login') }}" class="btn" style="background:var(--gold);color:var(--ink);">Entra in area riservata</a>
+    </div>
+</section>
+
+<footer>
+    <div class="container">
+        <div>
+            <div class="logo" style="margin-bottom:16px;">Maqueta <span class="amp">&amp;</span> Co.</div>
+            <p style="font-style:italic;color:var(--muted);">Casa editrice musicale indipendente.<br>Dal 2020.</p>
+        </div>
+        <div>
+            <h5>Catalogo</h5>
+            <ul>
+                <li><a href="#artisti">Artisti</a></li>
+                <li><a href="#catalogo">Dischi</a></li>
+                <li><a href="#eventi">Calendario</a></li>
+            </ul>
+        </div>
+        <div>
+            <h5>Altri stili</h5>
+            <ul>
+                <li><a href="{{ url_for('landing_moderno') }}">Moderno</a></li>
+                <li><a href="{{ url_for('landing_scuro') }}">Dark</a></li>
+                <li><a href="{{ url_for('landing_creativo') }}">Creativo</a></li>
+                <li><a href="{{ url_for('landing_magazine') }}">Magazine</a></li>
+            </ul>
+        </div>
+        <div>
+            <h5>Contatti</h5>
+            <ul>
+                <li>info@maquetaweb.it</li>
+                <li>Via della Musica 1<br>Roma, Italia</li>
+            </ul>
+        </div>
+    </div>
+    <div class="credits">© 2026 Maqueta &amp; Co. — Tutti i diritti riservati.</div>
+</footer>
+</body>
+</html>

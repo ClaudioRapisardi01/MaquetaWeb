@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Maqueta Web - Magazine</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,900;1,400;1,700&family=Source+Sans+3:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+<style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+        --ink: #0d0d0d;
+        --paper: #fafaf5;
+        --red: #c1121f;
+        --yellow: #f9c80e;
+        --muted: #606060;
+        --line: #1a1a1a;
+    }
+    body {
+        font-family: 'Source Sans 3', sans-serif;
+        background: var(--paper);
+        color: var(--ink);
+        font-size: 16px;
+        line-height: 1.55;
+    }
+    a { color: inherit; text-decoration: none; }
+    .serif { font-family: 'Playfair Display', serif; }
+    .mono { font-family: 'JetBrains Mono', monospace; }
+    .container { max-width: 1320px; margin: 0 auto; padding: 0 32px; }
+    img { max-width: 100%; display: block; }
+
+    /* Masthead */
+    header.masthead {
+        border-top: 6px solid var(--ink);
+        padding: 20px 0 12px;
+        border-bottom: 1px solid var(--ink);
+    }
+    .masthead-top {
+        display: flex; justify-content: space-between;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: .72rem;
+        text-transform: uppercase;
+        letter-spacing: .15em;
+        color: var(--muted);
+        margin-bottom: 16px;
+    }
+    .masthead-title {
+        text-align: center;
+        font-family: 'Playfair Display', serif;
+        font-weight: 900;
+        font-size: clamp(3rem, 10vw, 7rem);
+        letter-spacing: -.02em;
+        line-height: 1;
+    }
+    .masthead-title em { font-style: italic; color: var(--red); }
+    .masthead-bottom {
+        display: flex; justify-content: space-between; align-items: center;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: .72rem;
+        text-transform: uppercase;
+        letter-spacing: .15em;
+        padding-top: 12px;
+        margin-top: 12px;
+        border-top: 1px solid var(--ink);
+    }
+
+    nav.secondary {
+        border-bottom: 2px solid var(--ink);
+        background: var(--ink);
+        color: var(--paper);
+        padding: 14px 0;
+        position: sticky; top: 0; z-index: 100;
+    }
+    nav.secondary .container { display: flex; justify-content: space-between; align-items: center; gap: 20px; }
+    nav.secondary ul { display: flex; gap: 28px; list-style: none; flex-wrap: wrap; }
+    nav.secondary ul a {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: .8rem;
+        text-transform: uppercase;
+        letter-spacing: .15em;
+        transition: color .2s;
+    }
+    nav.secondary ul a:hover { color: var(--yellow); }
+    nav.secondary .login {
+        background: var(--yellow);
+        color: var(--ink);
+        padding: 6px 14px;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: .75rem;
+        text-transform: uppercase;
+        letter-spacing: .15em;
+        font-weight: 600;
+    }
+
+    /* Hero article */
+    .hero-article {
+        padding: 60px 0;
+        display: grid;
+        grid-template-columns: 1.4fr 1fr;
+        gap: 48px;
+        border-bottom: 1px solid var(--ink);
+        align-items: center;
+    }
+    .hero-article .label {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: .72rem;
+        text-transform: uppercase;
+        letter-spacing: .25em;
+        color: var(--red);
+        margin-bottom: 16px;
+    }
+    .hero-article h1 {
+        font-family: 'Playfair Display', serif;
+        font-size: clamp(2.5rem, 6vw, 5rem);
+        line-height: 1.05;
+        letter-spacing: -.02em;
+        margin-bottom: 24px;
+    }
+    .hero-article h1 em { color: var(--red); }
+    .hero-article p.lead {
+        font-size: 1.2rem;
+        line-height: 1.5;
+        margin-bottom: 24px;
+        max-width: 560px;
+    }
+    .hero-article p.lead::first-letter {
+        font-family: 'Playfair Display', serif;
+        font-weight: 900;
+        font-size: 3.5rem;
+        float: left;
+        line-height: 0.9;
+        margin: 8px 10px 0 0;
+        color: var(--red);
+    }
+    .hero-article .byline {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: .75rem;
+        text-transform: uppercase;
+        letter-spacing: .2em;
+        color: var(--muted);
+    }
+    .hero-article .hero-img { aspect-ratio: 4/5; overflow: hidden; border: 2px solid var(--ink); }
+    .hero-article .hero-img img { width: 100%; height: 100%; object-fit: cover; filter: grayscale(.3) contrast(1.05); }
+
+    /* Ticker */
+    .ticker-bar {
+        background: var(--yellow);
+        border-top: 2px solid var(--ink);
+        border-bottom: 2px solid var(--ink);
+        padding: 14px 0;
+        overflow: hidden;
+        white-space: nowrap;
+    }
+    .ticker-inner {
+        display: inline-flex;
+        gap: 48px;
+        animation: tick 25s linear infinite;
+        font-family: 'JetBrains Mono', monospace;
+        font-weight: 600;
+        font-size: .9rem;
+        text-transform: uppercase;
+        letter-spacing: .15em;
+    }
+    @keyframes tick { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+    .ticker-inner span::before { content: '◆ '; color: var(--red); margin-right: 8px; }
+
+    /* Section header */
+    .sec-head {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        padding: 48px 0 32px;
+        border-bottom: 4px solid var(--ink);
+        margin-bottom: 40px;
+    }
+    .sec-head .num {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: .8rem;
+        color: var(--muted);
+        letter-spacing: .2em;
+    }
+    .sec-head h2 {
+        font-family: 'Playfair Display', serif;
+        font-weight: 900;
+        font-size: clamp(2rem, 5vw, 4rem);
+        letter-spacing: -.02em;
+        line-height: 1;
+    }
+    .sec-head h2 em { font-style: italic; color: var(--red); }
+    .sec-head .meta {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: .75rem;
+        text-transform: uppercase;
+        letter-spacing: .2em;
+        color: var(--muted);
+    }
+
+    section.ed { padding: 32px 0 80px; }
+
+    /* Artisti - editorial grid */
+    .artisti-ed { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 24px; }
+    .ed-card { border: 1px solid var(--ink); overflow: hidden; display: flex; flex-direction: column; background: #fff; }
+    .ed-card .i { overflow: hidden; }
+    .ed-card.big .i { aspect-ratio: 4/5; }
+    .ed-card.sm .i { aspect-ratio: 4/3; }
+    .ed-card .i img { width: 100%; height: 100%; object-fit: cover; transition: transform .4s; filter: grayscale(.2); }
+    .ed-card:hover .i img { transform: scale(1.05); }
+    .ed-card .bd { padding: 20px; }
+    .ed-card .lab { font-family: 'JetBrains Mono', monospace; font-size: .7rem; text-transform: uppercase; letter-spacing: .2em; color: var(--red); margin-bottom: 10px; }
+    .ed-card .tit { font-family: 'Playfair Display', serif; font-size: 1.6rem; font-weight: 700; line-height: 1.15; margin-bottom: 8px; }
+    .ed-card.big .tit { font-size: 2.2rem; }
+    .ed-card .ex { color: var(--muted); font-size: .95rem; margin-bottom: 12px; }
+    .ed-card .by { font-family: 'JetBrains Mono', monospace; font-size: .7rem; text-transform: uppercase; letter-spacing: .2em; color: var(--muted); margin-top: auto; padding-top: 12px; border-top: 1px solid var(--ink); }
+
+    /* Dischi - newsprint style */
+    .dischi-sec { background: var(--ink); color: var(--paper); }
+    .dischi-sec .sec-head { border-color: var(--paper); }
+    .dischi-sec .sec-head .meta, .dischi-sec .sec-head .num { color: #aaa; }
+    .dischi-grid-ed { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 24px; }
+    .d-item .c { aspect-ratio: 1; overflow: hidden; margin-bottom: 10px; border: 1px solid #333; }
+    .d-item .c img { width: 100%; height: 100%; object-fit: cover; }
+    .d-item .rank {
+        font-family: 'Playfair Display', serif;
+        font-weight: 900;
+        font-size: 2.2rem;
+        line-height: 1;
+        color: var(--yellow);
+        float: left;
+        margin-right: 10px;
+    }
+    .d-item .t { font-family: 'Playfair Display', serif; font-weight: 700; font-size: 1.1rem; line-height: 1.2; }
+    .d-item .m { font-family: 'JetBrains Mono', monospace; font-size: .7rem; text-transform: uppercase; color: var(--yellow); letter-spacing: .15em; clear: both; padding-top: 4px; }
+
+    /* Eventi - table newspaper */
+    .eventi-tbl {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 1rem;
+    }
+    .eventi-tbl thead th {
+        text-align: left;
+        padding: 12px 16px;
+        border-bottom: 2px solid var(--ink);
+        font-family: 'JetBrains Mono', monospace;
+        font-size: .72rem;
+        text-transform: uppercase;
+        letter-spacing: .2em;
+        color: var(--muted);
+    }
+    .eventi-tbl tbody tr { border-bottom: 1px solid rgba(13,13,13,.15); }
+    .eventi-tbl tbody tr:hover { background: rgba(249,200,14,.15); }
+    .eventi-tbl td { padding: 20px 16px; vertical-align: top; }
+    .eventi-tbl .dt { font-family: 'Playfair Display', serif; font-weight: 700; font-size: 1.3rem; white-space: nowrap; }
+    .eventi-tbl .tt { font-family: 'Playfair Display', serif; font-weight: 700; font-size: 1.2rem; }
+    .eventi-tbl .vw { color: var(--muted); font-size: .95rem; }
+    .eventi-tbl .price { font-family: 'JetBrains Mono', monospace; font-weight: 600; color: var(--red); text-align: right; }
+
+    /* News - magazine columns */
+    .news-columns { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 32px; }
+    .news-lead {
+        border-right: 1px solid var(--ink);
+        padding-right: 32px;
+    }
+    .news-lead .img { aspect-ratio: 16/10; overflow: hidden; margin-bottom: 20px; border: 1px solid var(--ink); }
+    .news-lead .img img { width: 100%; height: 100%; object-fit: cover; }
+    .news-lead .cat { font-family: 'JetBrains Mono', monospace; font-size: .72rem; text-transform: uppercase; letter-spacing: .25em; color: var(--red); margin-bottom: 12px; }
+    .news-lead h3 { font-family: 'Playfair Display', serif; font-weight: 900; font-size: clamp(1.8rem, 3vw, 2.8rem); line-height: 1.1; margin-bottom: 16px; letter-spacing: -.01em; }
+    .news-lead p { font-size: 1.1rem; color: var(--muted); }
+    .news-lead p::first-letter { font-family: 'Playfair Display', serif; font-size: 3rem; font-weight: 900; float: left; line-height: .9; margin: 8px 8px 0 0; color: var(--ink); }
+    .news-mini { border-bottom: 1px solid rgba(13,13,13,.2); padding-bottom: 20px; margin-bottom: 20px; }
+    .news-mini:last-child { border-bottom: none; }
+    .news-mini .cat { font-family: 'JetBrains Mono', monospace; font-size: .65rem; text-transform: uppercase; letter-spacing: .25em; color: var(--red); margin-bottom: 6px; }
+    .news-mini h4 { font-family: 'Playfair Display', serif; font-weight: 700; font-size: 1.2rem; line-height: 1.2; margin-bottom: 6px; }
+    .news-mini p { font-size: .88rem; color: var(--muted); }
+
+    /* Servizi - classified ads */
+    .classifieds-sec { background: #f0ede3; border-top: 2px dashed var(--ink); border-bottom: 2px dashed var(--ink); }
+    .classifieds { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 0; border: 2px solid var(--ink); }
+    .classified {
+        padding: 24px;
+        border-right: 1px solid var(--ink);
+        border-bottom: 1px solid var(--ink);
+        background: var(--paper);
+    }
+    .classified i { font-size: 1.8rem; color: var(--red); margin-bottom: 14px; display: block; }
+    .classified .n { font-family: 'Playfair Display', serif; font-weight: 700; font-size: 1.25rem; margin-bottom: 6px; }
+    .classified .d { color: var(--muted); font-size: .92rem; margin-bottom: 12px; }
+    .classified .p { font-family: 'JetBrains Mono', monospace; font-weight: 700; color: var(--ink); font-size: .9rem; }
+
+    /* CTA editorial */
+    .cta-ed {
+        background: var(--red);
+        color: var(--paper);
+        padding: 100px 0;
+        text-align: center;
+        border-top: 4px double var(--paper);
+        border-bottom: 4px double var(--paper);
+    }
+    .cta-ed .k { font-family: 'JetBrains Mono', monospace; font-size: .8rem; text-transform: uppercase; letter-spacing: .3em; margin-bottom: 20px; }
+    .cta-ed h2 { font-family: 'Playfair Display', serif; font-weight: 900; font-size: clamp(2.5rem, 6vw, 4.5rem); line-height: 1; margin-bottom: 20px; letter-spacing: -.02em; }
+    .cta-ed h2 em { font-style: italic; }
+    .cta-ed p { font-size: 1.15rem; margin-bottom: 32px; max-width: 600px; margin-left: auto; margin-right: auto; }
+    .cta-ed a {
+        display: inline-block;
+        padding: 16px 32px;
+        background: var(--ink);
+        color: var(--paper);
+        font-family: 'JetBrains Mono', monospace;
+        font-size: .85rem;
+        text-transform: uppercase;
+        letter-spacing: .2em;
+        font-weight: 600;
+    }
+
+    footer.paper-footer {
+        background: var(--ink); color: var(--paper);
+        padding: 60px 0 30px;
+    }
+    footer.paper-footer .container { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 40px; }
+    footer.paper-footer h4 { font-family: 'Playfair Display', serif; font-size: 1.2rem; margin-bottom: 14px; color: var(--yellow); }
+    footer.paper-footer ul { list-style: none; }
+    footer.paper-footer ul li { margin-bottom: 8px; font-size: .95rem; }
+    footer.paper-footer ul a:hover { color: var(--yellow); text-decoration: underline; }
+    .colophon { text-align: center; padding-top: 40px; margin-top: 40px; border-top: 1px dashed #444; font-family: 'JetBrains Mono', monospace; font-size: .75rem; text-transform: uppercase; letter-spacing: .2em; color: #aaa; }
+
+    @media (max-width: 900px) {
+        .hero-article { grid-template-columns: 1fr; }
+        .artisti-ed { grid-template-columns: 1fr; }
+        .news-columns { grid-template-columns: 1fr; }
+        .news-lead { border-right: none; padding-right: 0; border-bottom: 2px solid var(--ink); padding-bottom: 32px; }
+    }
+</style>
+</head>
+<body>
+
+<header class="masthead">
+    <div class="container">
+        <div class="masthead-top">
+            <span>N° {{ dischi|length + artisti_tutti|length }} · Edizione Speciale</span>
+            <span>Martedì 20 Aprile 2026</span>
+            <span>€ 1,00</span>
+        </div>
+        <div class="masthead-title">Maqueta <em>Gazette</em></div>
+        <div class="masthead-bottom">
+            <span>Il giornale dell'etichetta</span>
+            <span>maquetaweb.it</span>
+            <span>Anno VI · N. 04</span>
+        </div>
+    </div>
+</header>
+
+<nav class="secondary">
+    <div class="container">
+        <div class="mono" style="font-size:.75rem;letter-spacing:.2em;text-transform:uppercase;">Sezioni →</div>
+        <ul>
+            <li><a href="#cover">Copertina</a></li>
+            <li><a href="#artisti">Roster</a></li>
+            <li><a href="#dischi">Classifica</a></li>
+            <li><a href="#eventi">Agenda</a></li>
+            <li><a href="#news">Cronaca</a></li>
+            <li><a href="#servizi">Annunci</a></li>
+        </ul>
+        <a href="{{ url_for('login') }}" class="login">Login →</a>
+    </div>
+</nav>
+
+<section class="hero-article" id="cover">
+    <div class="container" style="display:contents;">
+        <div>
+            <div class="label">★ Cover Story / Editoriale</div>
+            <h1>La scena italiana ha <em>un posto</em> dove cresce davvero.</h1>
+            <p class="lead">Maqueta è un'etichetta discografica indipendente che ha fatto della cura della scena nazionale la sua missione. Da sei anni ospitiamo artisti emergenti e consolidati, pubblichiamo dischi che restano, organizziamo concerti che la gente ricorda.</p>
+            <div class="byline">Di: La Redazione · Reportage</div>
+        </div>
+        <div class="hero-img">
+            {% if artisti and artisti[0].foto %}
+            <img src="{{ url_for('static', filename='uploads/' + artisti[0].foto) }}" alt="{{ artisti[0].nome_display }}">
+            {% else %}
+            <div style="width:100%;height:100%;background:linear-gradient(135deg,#c1121f,#0d0d0d);"></div>
+            {% endif %}
+        </div>
+    </div>
+</section>
+
+<div class="ticker-bar">
+    <div class="ticker-inner">
+        <span>{{ artisti_tutti|length }} Artisti nel roster</span>
+        <span>{{ dischi|length }} Uscite catalogate</span>
+        <span>{{ eventi|length }} Eventi in agenda</span>
+        <span>{{ singoli|length }} Nuovi singoli</span>
+        <span>{{ news|length }} Notizie questa settimana</span>
+        <span>{{ artisti_tutti|length }} Artisti nel roster</span>
+        <span>{{ dischi|length }} Uscite catalogate</span>
+        <span>{{ eventi|length }} Eventi in agenda</span>
+        <span>{{ singoli|length }} Nuovi singoli</span>
+        <span>{{ news|length }} Notizie questa settimana</span>
+    </div>
+</div>
+
+<section class="ed" id="artisti">
+    <div class="container">
+        <div class="sec-head">
+            <div>
+                <div class="num">— Sezione 01 —</div>
+                <h2>Il <em>Roster</em></h2>
+            </div>
+            <div class="meta">{{ artisti_tutti|length }} Artisti</div>
+        </div>
+        <div class="artisti-ed">
+            {% for a in artisti %}
+            {% if loop.index == 1 %}
+            <div class="ed-card big">
+                <div class="i">
+                    {% if a.foto %}<img src="{{ url_for('static', filename='uploads/' + a.foto) }}" alt="{{ a.nome_display }}">
+                    {% else %}<div style="width:100%;height:100%;background:linear-gradient(135deg,#c1121f,#0d0d0d);"></div>{% endif %}
+                </div>
+                <div class="bd">
+                    <div class="lab">In copertina</div>
+                    <div class="tit">{{ a.nome_display }}</div>
+                    <div class="ex">{{ (a.bio or 'Artista del roster Maqueta.')[:180] }}{% if a.bio and a.bio|length > 180 %}…{% endif %}</div>
+                    <div class="by">{{ a.tipo_display }}{% if a.genere %} · {{ a.genere }}{% endif %}{% if a.citta %} · {{ a.citta }}{% endif %}</div>
+                </div>
+            </div>
+            {% elif loop.index <= 3 %}
+            <div class="ed-card sm">
+                <div class="i">
+                    {% if a.foto %}<img src="{{ url_for('static', filename='uploads/' + a.foto) }}" alt="{{ a.nome_display }}">
+                    {% else %}<div style="width:100%;height:100%;background:linear-gradient(135deg,#f9c80e,#0d0d0d);"></div>{% endif %}
+                </div>
+                <div class="bd">
+                    <div class="lab">Ritratto</div>
+                    <div class="tit">{{ a.nome_display }}</div>
+                    <div class="by">{{ a.tipo_display }}{% if a.genere %} · {{ a.genere }}{% endif %}</div>
+                </div>
+            </div>
+            {% endif %}
+            {% endfor %}
+        </div>
+        {% if artisti and artisti|length > 3 %}
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:20px;margin-top:24px;">
+            {% for a in artisti[3:] %}
+            <div class="ed-card sm">
+                <div class="i" style="aspect-ratio:1;">
+                    {% if a.foto %}<img src="{{ url_for('static', filename='uploads/' + a.foto) }}" alt="{{ a.nome_display }}">
+                    {% else %}<div style="width:100%;height:100%;background:#ddd;"></div>{% endif %}
+                </div>
+                <div class="bd">
+                    <div class="tit" style="font-size:1.2rem;">{{ a.nome_display }}</div>
+                    <div class="by">{{ a.tipo_display }}</div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+</section>
+
+<section class="ed dischi-sec" id="dischi">
+    <div class="container">
+        <div class="sec-head">
+            <div>
+                <div class="num">— Sezione 02 —</div>
+                <h2>La <em>Classifica</em></h2>
+            </div>
+            <div class="meta">Uscite {{ dischi|length }}</div>
+        </div>
+        <div class="dischi-grid-ed">
+            {% for d in dischi %}
+            <div class="d-item">
+                <div class="c">
+                    {% if d.copertina %}<img src="{{ url_for('static', filename='uploads/' + d.copertina) }}" alt="{{ d.titolo }}">
+                    {% else %}<div style="width:100%;height:100%;background:linear-gradient(45deg,#f9c80e,#c1121f);"></div>{% endif %}
+                </div>
+                <div class="rank">{{ '%02d'|format(loop.index) }}</div>
+                <div class="t">{{ d.titolo }}</div>
+                <div class="m">{{ d.tipo_display }}{% if d.anno_uscita %} · {{ d.anno_uscita }}{% endif %}</div>
+            </div>
+            {% else %}
+            <p style="color:#aaa;">Nessun disco in classifica.</p>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<section class="ed" id="eventi">
+    <div class="container">
+        <div class="sec-head">
+            <div>
+                <div class="num">— Sezione 03 —</div>
+                <h2>L'<em>Agenda</em> live</h2>
+            </div>
+            <div class="meta">{{ eventi|length }} date</div>
+        </div>
+        {% if eventi %}
+        <table class="eventi-tbl">
+            <thead>
+                <tr><th>Data</th><th>Spettacolo</th><th>Luogo</th><th style="text-align:right;">Ingresso</th></tr>
+            </thead>
+            <tbody>
+                {% for e in eventi %}
+                <tr>
+                    <td class="dt">{% if e.data_evento %}{{ e.data_evento.strftime('%d/%m') }}{% endif %}<br><span class="mono" style="font-size:.7rem;color:var(--muted);letter-spacing:.15em;">{% if e.data_evento %}{{ e.data_evento.strftime('%Y') }}{% endif %}</span></td>
+                    <td class="tt">{{ e.titolo }}<br><span class="mono" style="font-size:.7rem;color:var(--red);text-transform:uppercase;letter-spacing:.2em;">{{ e.tipo_display }}</span></td>
+                    <td class="vw">{{ e.luogo_completo or e.venue or '—' }}</td>
+                    <td class="price">
+                        {% if e.sold_out %}SOLD OUT
+                        {% elif e.prezzo_display %}{{ e.prezzo_display }}
+                        {% elif e.link_biglietti %}<a href="{{ e.link_biglietti }}">Biglietti →</a>
+                        {% else %}—
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p style="color:var(--muted);">Nessuna data in agenda.</p>
+        {% endif %}
+    </div>
+</section>
+
+<section class="ed" id="news" style="background:#f0ede3;">
+    <div class="container">
+        <div class="sec-head">
+            <div>
+                <div class="num">— Sezione 04 —</div>
+                <h2>La <em>Cronaca</em></h2>
+            </div>
+            <div class="meta">Aggiornato</div>
+        </div>
+        {% if news %}
+        <div class="news-columns">
+            <div class="news-lead">
+                <div class="img">
+                    {% if news[0].immagine %}<img src="{{ url_for('static', filename='uploads/' + news[0].immagine) }}" alt="{{ news[0].titolo }}">
+                    {% else %}<div style="width:100%;height:100%;background:linear-gradient(135deg,#c1121f,#f9c80e);"></div>{% endif %}
+                </div>
+                {% if news[0].categoria %}<div class="cat">{{ news[0].categoria }}</div>{% endif %}
+                <h3>{{ news[0].titolo }}</h3>
+                <p>{{ news[0].estratto or '' }}</p>
+            </div>
+            <div>
+                {% for n in news[1:3] %}
+                <div class="news-mini">
+                    {% if n.categoria %}<div class="cat">{{ n.categoria }}</div>{% endif %}
+                    <h4>{{ n.titolo }}</h4>
+                    <p>{{ (n.estratto or '')[:120] }}{% if n.estratto and n.estratto|length > 120 %}…{% endif %}</p>
+                </div>
+                {% endfor %}
+            </div>
+            <div>
+                {% for n in news[3:5] %}
+                <div class="news-mini">
+                    {% if n.categoria %}<div class="cat">{{ n.categoria }}</div>{% endif %}
+                    <h4>{{ n.titolo }}</h4>
+                    <p>{{ (n.estratto or '')[:120] }}{% if n.estratto and n.estratto|length > 120 %}…{% endif %}</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% else %}
+        <p style="color:var(--muted);">Nessuna notizia pubblicata.</p>
+        {% endif %}
+    </div>
+</section>
+
+<section class="ed classifieds-sec" id="servizi">
+    <div class="container">
+        <div class="sec-head" style="border-color:var(--ink);">
+            <div>
+                <div class="num">— Sezione 05 —</div>
+                <h2>Gli <em>Annunci</em></h2>
+            </div>
+            <div class="meta">Servizi per artisti</div>
+        </div>
+        <div class="classifieds">
+            {% for s in servizi %}
+            <div class="classified">
+                <i class="bi {{ s.icona }}"></i>
+                <div class="n">{{ s.nome }}</div>
+                <div class="d">{{ s.descrizione_breve or s.descrizione or '' }}</div>
+                {% if s.prezzo %}<div class="p">DA € {{ '%.2f'|format(s.prezzo) }}</div>{% endif %}
+            </div>
+            {% else %}
+            <div class="classified"><p style="color:var(--muted);">Nessun servizio pubblicato.</p></div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<section class="cta-ed">
+    <div class="container">
+        <div class="k">— Invia il tuo materiale —</div>
+        <h2>Abbiamo spazio<br>per le <em>storie</em> nuove.</h2>
+        <p>Se fai musica che ti sembra valga la pena raccontare, ci interessa ascoltarla. Mandaci la tua maqueta.</p>
+        <a href="{{ url_for('login') }}">Accedi all'area artisti →</a>
+    </div>
+</section>
+
+<footer class="paper-footer">
+    <div class="container">
+        <div>
+            <div class="serif" style="font-size:2rem;font-weight:900;margin-bottom:12px;">Maqueta <em style="color:var(--red);">Gazette</em></div>
+            <p style="font-size:.9rem;opacity:.75;">Il giornale dell'etichetta indipendente.<br>Dal 2020, con cadenza variabile.</p>
+        </div>
+        <div>
+            <h4>Sezioni</h4>
+            <ul>
+                <li><a href="#artisti">Roster</a></li>
+                <li><a href="#dischi">Classifica</a></li>
+                <li><a href="#eventi">Agenda</a></li>
+                <li><a href="#news">Cronaca</a></li>
+            </ul>
+        </div>
+        <div>
+            <h4>Altre edizioni</h4>
+            <ul>
+                <li><a href="{{ url_for('landing_moderno') }}">Moderno</a></li>
+                <li><a href="{{ url_for('landing_scuro') }}">Dark</a></li>
+                <li><a href="{{ url_for('landing_elegante') }}">Elegante</a></li>
+                <li><a href="{{ url_for('landing_creativo') }}">Creativo</a></li>
+            </ul>
+        </div>
+        <div>
+            <h4>Redazione</h4>
+            <ul>
+                <li>redazione@maquetaweb.it</li>
+                <li>demo@maquetaweb.it</li>
+                <li>booking@maquetaweb.it</li>
+            </ul>
+        </div>
+    </div>
+    <div class="colophon">© 2026 Maqueta Gazette · Stampato in digitale · Tutti i diritti riservati</div>
+</footer>
+</body>
+</html>
