@@ -221,6 +221,52 @@ def index():
     return redirect(url_for('login'))
 
 
+# ============ LANDING PAGES PUBBLICHE ============
+
+def _get_landing_data():
+    """Raccoglie i dati comuni per tutte le landing page pubbliche."""
+    return {
+        'artisti': Artista.get_in_evidenza() or Artista.get_all_active()[:6],
+        'artisti_tutti': Artista.get_all_active(),
+        'dischi': Disco.get_all_published()[:8],
+        'eventi': Evento.get_futuri()[:6],
+        'news': News.get_in_evidenza()[:4] or News.get_all_published()[:4],
+        'servizi': Servizio.get_in_evidenza() or Servizio.get_all_active()[:6],
+        'singoli': Brano.get_singoli()[:6],
+    }
+
+
+@app.route('/landing')
+def landing_index():
+    """Pagina di indice con anteprime delle 5 landing page."""
+    return render_template('landing/index.html')
+
+
+@app.route('/landing/moderno')
+def landing_moderno():
+    return render_template('landing/moderno.html', **_get_landing_data())
+
+
+@app.route('/landing/scuro')
+def landing_scuro():
+    return render_template('landing/scuro.html', **_get_landing_data())
+
+
+@app.route('/landing/elegante')
+def landing_elegante():
+    return render_template('landing/elegante.html', **_get_landing_data())
+
+
+@app.route('/landing/creativo')
+def landing_creativo():
+    return render_template('landing/creativo.html', **_get_landing_data())
+
+
+@app.route('/landing/magazine')
+def landing_magazine():
+    return render_template('landing/magazine.html', **_get_landing_data())
+
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if current_user.is_authenticated:
