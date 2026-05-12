@@ -2,7 +2,8 @@
 .env
 .env.local
 
-# Certificati TLS (chiave privata!)
+# Certificati TLS — gestiti da nginx, non da gunicorn. Rimane il glob
+# per sicurezza nel caso qualcuno generi un cert locale per test.
 certs/*.pem
 certs/*.key
 certs/*.crt

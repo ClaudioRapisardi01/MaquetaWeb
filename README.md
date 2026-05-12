@@ -31,38 +31,45 @@ sudo mysql < setup_db.sql
 cp .env.example .env
 # Modifica .env con i tuoi valori
 
-# 5. Certificato HTTPS self-signed (per LAN/dev)
-mkdir -p certs
-openssl req -x509 -newkey rsa:2048 \
-    -keyout certs/key.pem -out certs/cert.pem \
-    -days 365 -nodes \
-    -subj "/CN=maquetaweb-local" \
-    -addext "subjectAltName=DNS:localhost,IP:127.0.0.1"
-chmod 600 certs/key.pem
+# 5. nginx come reverse proxy (gestisce TLS)
+#    Vedi docs/nginx.conf.sample per il template completo.
+sudo cp docs/nginx.conf.sample /etc/nginx/sites-available/maquetaweb
+# (modifica server_name, ssl_certificate, ecc.)
+sudo ln -s /etc/nginx/sites-available/maquetaweb /etc/nginx/sites-enabled/
+sudo nginx -t && sudo systemctl reload nginx
 ```
 
 ---
 
 ## Avvio
 
-### Produzione (raccomandato): gunicorn + HTTPS
+### Produzione: gunicorn dietro nginx
 
 ```bash
 ./start.sh
 ```
 
-L'app diventa raggiungibile su `https://localhost:5000` (e dal LAN
-usando l'IP della macchina). Il browser mostrerà un avviso per il
-certificato self-signed: clicca "Avanzate → Procedi comunque".
+gunicorn parte ascoltando **solo su `127.0.0.1:5000`** (porta interna,
+non raggiungibile da fuori). Il TLS e l'esposizione pubblica li gestisce
+nginx davanti, con il certificato gia` configurato (Let's Encrypt o
+equivalente). Vedi `docs/nginx.conf.sample`.
+
+Architettura:
+```
+[Internet] ──HTTPS──▶ [nginx:443 + cert] ──HTTP 127.0.0.1:5000──▶ [gunicorn]
+```
 
 Opzioni:
-
 ```bash
-./start.sh --port 8443       # cambia porta
-./start.sh --http            # avvia senza TLS (sconsigliato)
-WORKERS=4 ./start.sh         # più worker per più concorrenza
+./start.sh --port 8000       # cambia porta interna
+./start.sh --lan             # bind 0.0.0.0 (test senza nginx)
+WORKERS=4 ./start.sh         # più worker (default 2*core+1)
 WORKER_TIMEOUT=3600 ./start.sh  # timeout per upload molto lunghi
 ```
+
+Lo schema reale (https), il vero IP del client e l'host pubblico
+arrivano a Flask via header `X-Forwarded-*` impostati da nginx e letti
+da `werkzeug ProxyFix` (vedi `app.py`).
 
 ### Sviluppo: dev server Werkzeug (con reloader)
 
@@ -89,11 +96,11 @@ casuale** (24 caratteri). La trovi in:
 ## Architettura
 
 ```
-[Browser] ──HTTPS──▶ [gunicorn + Flask] ──SFTP──▶ [NAS remoto]
-                          │
-                          ├─ MariaDB        (utenti, permessi, news, ...)
-                          ├─ staging/       (file in transito al NAS)
-                          └─ static/uploads/ (immagini per articoli)
+[Browser] ──HTTPS──▶ [nginx] ──HTTP 127.0.0.1──▶ [gunicorn + Flask] ──SFTP──▶ [NAS remoto]
+                                                       │
+                                                       ├─ MariaDB        (utenti, permessi, news, ...)
+                                                       ├─ staging/       (file in transito al NAS)
+                                                       └─ static/uploads/ (immagini per articoli)
 ```
 
 ### Upload flow
@@ -119,7 +126,7 @@ RAM costante (~4 MB chunk), supporta file da decine di GB.
 | Password hashate (bcrypt) | ✅ |
 | CSRF tokens su POST | ✅ (Flask-WTF) |
 | Rate limit login | ✅ 10/min, 60/h per IP |
-| HTTPS | ✅ (cert self-signed di default; per produzione usare Let's Encrypt) |
+| HTTPS | ✅ (nginx davanti gestisce TLS con cert valido) |
 | Admin password random | ✅ |
 | Cestino enforced server-side | ✅ |
 | File nascosti enforced server-side | ✅ |
@@ -127,16 +134,17 @@ RAM costante (~4 MB chunk), supporta file da decine di GB.
 | Audit log | ❌ (TODO) |
 | 2FA | ❌ (TODO) |
 
-### Per HTTPS in produzione vera (no self-signed)
+### Configurazione nginx
 
-Mettere nginx davanti a gunicorn:
+Vedi `docs/nginx.conf.sample` per il template completo. Punti chiave:
 
-```
-[Browser] ──443 HTTPS──▶ [nginx + Let's Encrypt] ──127.0.0.1:5000 HTTP──▶ [gunicorn]
-```
-
-Vantaggi: certificati validi (no warning browser), buffering uploads,
-serving statici efficiente, supporto HTTP/2.
+- `client_max_body_size 0` (o un valore alto): senza, nginx rifiuta upload
+  oltre 1 MB di default.
+- `proxy_buffering off; proxy_request_buffering off`: necessario per
+  download/upload in streaming, altrimenti nginx bufferizza tutto.
+- `proxy_read_timeout 1800s`: allineato col `WORKER_TIMEOUT` di gunicorn.
+- Header `X-Forwarded-Proto $scheme` e `X-Forwarded-For`: letti da
+  ProxyFix in Flask per ricostruire schema reale e IP client.
 
 ---
 

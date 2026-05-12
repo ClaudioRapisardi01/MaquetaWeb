@@ -4,6 +4,7 @@ from flask_wtf.csrf import CSRFProtect, generate_csrf
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from werkzeug.utils import secure_filename
+from werkzeug.middleware.proxy_fix import ProxyFix
 import nas_storage
 import upload_queue
 from config import Config
@@ -27,6 +28,16 @@ app.config.from_object(Config)
 # Rimuove il limite globale di upload (necessario per il file manager NAS senza limiti).
 # La validazione delle dimensioni per gli upload normali (immagini) avviene a livello applicativo.
 app.config['MAX_CONTENT_LENGTH'] = None
+
+# Reverse proxy (nginx davanti a gunicorn): leggiamo gli header
+# X-Forwarded-* impostati da nginx per recuperare lo schema reale
+# (https), l'host pubblico e l'IP del client. Senza ProxyFix:
+#  - request.remote_addr conterrebbe sempre 127.0.0.1 (= nginx)
+#  - url_for(..., _external=True) genererebbe url http://... non https
+#  - rate limiting di Flask-Limiter limiterebbe per IP nginx, non utente
+# x_for=1 e x_proto=1: ci fidiamo di UN solo proxy davanti (= il nostro
+# nginx). Non aumentare i numeri se non c'e` un'altra layer (es. Cloudflare).
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 
 # --- CSRF protection (Flask-WTF) ---
 # Protegge tutti i POST/PUT/DELETE/PATCH richiedendo un token nel form

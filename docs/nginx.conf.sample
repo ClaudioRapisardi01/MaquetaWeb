@@ -1,0 +1,97 @@
+# nginx reverse proxy per MaquetaWeb.
+#
+# Da copiare/adattare dentro la tua conf nginx esistente.
+# Posizione tipica: /etc/nginx/sites-available/maquetaweb -> symlink in sites-enabled
+#
+# Sostituisci:
+#   - server_name: il tuo dominio
+#   - ssl_certificate / ssl_certificate_key: i tuoi cert (Let's Encrypt, ecc.)
+#   - upstream maquetaweb: porta su cui gira gunicorn (default 5000)
+
+upstream maquetaweb {
+    server 127.0.0.1:5000;
+    keepalive 32;
+}
+
+# HTTP -> HTTPS redirect
+server {
+    listen 80;
+    listen [::]:80;
+    server_name maquetaweb.tuodominio.it;
+
+    # Lascia passare le richieste ACME per Let's Encrypt
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+    }
+
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}
+
+# HTTPS principale
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name maquetaweb.tuodominio.it;
+
+    # ---- TLS ----
+    ssl_certificate     /etc/letsencrypt/live/maquetaweb.tuodominio.it/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/maquetaweb.tuodominio.it/privkey.pem;
+
+    ssl_protocols       TLSv1.2 TLSv1.3;
+    ssl_ciphers         HIGH:!aNULL:!MD5;
+    ssl_prefer_server_ciphers on;
+    ssl_session_cache   shared:SSL:10m;
+    ssl_session_timeout 10m;
+
+    # HSTS: forza HTTPS per i prossimi 6 mesi
+    add_header Strict-Transport-Security "max-age=15552000; includeSubDomains" always;
+
+    # ---- Sicurezza ----
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+
+    # ---- Upload grandi ----
+    # MaquetaWeb gestisce upload da GB: alza il limite o disabilita.
+    # 0 = nessun limite. In alternativa metti un valore tipo 10G.
+    client_max_body_size 0;
+    client_body_buffer_size 1m;
+    client_body_timeout 1800s;     # 30 min, come gunicorn
+
+    # ---- Proxy verso gunicorn ----
+    location / {
+        proxy_pass http://maquetaweb;
+
+        # Header per ProxyFix lato Flask
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Host  $host;
+
+        # Connessioni lunghe (download di GB possono tenere il socket
+        # aperto per parecchi minuti)
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
+        proxy_read_timeout 1800s;
+        proxy_send_timeout 1800s;
+
+        # NON bufferizzare il response: per i download streaming serve
+        # che ogni chunk parta subito invece di aspettare il fill di
+        # un buffer interno di nginx. (Flask manda anche X-Accel-Buffering: no)
+        proxy_buffering off;
+        proxy_request_buffering off;
+    }
+
+    # ---- File statici serviti direttamente da nginx (opzionale) ----
+    # nginx serve i file CSS/JS/immagini molto piu` veloce di Flask.
+    # Sblocca questo blocco SE vuoi servirli direttamente.
+    #
+    # location /static/ {
+    #     alias /home/claudio/Scrivania/MaquetaWeb/static/;
+    #     expires 7d;
+    #     add_header Cache-Control "public, immutable";
+    # }
+}
