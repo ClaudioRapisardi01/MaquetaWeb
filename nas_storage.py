@@ -2,12 +2,25 @@ import paramiko
 import stat
 import os
 import io
+import time
 import logging
 import traceback
 from datetime import datetime
 from config import Config
 
 logger = logging.getLogger(__name__)
+
+# Throughput tuning per i transferi SFTP.
+# Di default paramiko fa read SFTP da 32 KB per volta: su connessioni a
+# latenza non trascurabile (es. NAS su Internet) significa decine di
+# round-trip al secondo, ognuno con overhead, che cappa la banda.
+# Alzando MAX_REQUEST_SIZE a 256 KB (massimo che la maggioranza dei server
+# SFTP accetta senza problemi) ogni read trasporta 8x i dati con la stessa
+# latenza, e con set_pipelined(True) molte read vanno in volo in parallelo.
+try:
+    paramiko.sftp_file.SFTPFile.MAX_REQUEST_SIZE = 256 * 1024
+except Exception:
+    pass
 
 
 def _get_sftp():
@@ -179,8 +192,42 @@ def upload_file(username, subpath, file_obj, filename):
         ssh.close()
 
 
+def upload_local_path(username, subpath, local_path, filename):
+    """Carica su NAS un file presente sul filesystem locale, in streaming.
+
+    A differenza di upload_file (che riceve uno stream/BytesIO), questa
+    funzione usa sftp.put() che legge a chunk dal disco: indispensabile
+    per file di grandi dimensioni (>100 MB) per non saturare la RAM.
+
+    Lancia un'eccezione in caso di errore (gestita dal worker della coda).
+    """
+    if not os.path.exists(local_path):
+        raise FileNotFoundError(f"File locale non trovato: {local_path}")
+
+    ssh, sftp = _get_sftp()
+    try:
+        subpath = _safe_subpath(subpath)
+        base = _user_base_path(username)
+        target_dir = f"{base}/{subpath}" if subpath else base
+
+        _mkdir_recursive(sftp, target_dir)
+
+        safe_name = filename.replace('/', '_').replace('\\', '_')
+        remote_path = f"{target_dir}/{safe_name}"
+
+        # sftp.put usa lo streaming a chunk dal filesystem locale
+        sftp.put(local_path, remote_path)
+        return True
+    finally:
+        sftp.close()
+        ssh.close()
+
+
 def download_file(username, subpath, filename):
-    """Scarica un file dalla cartella dell'utente.
+    """Scarica un file dalla cartella dell'utente caricandolo INTERAMENTE in RAM.
+
+    DEPRECATED per file grandi: usa iter_remote_file() in streaming.
+    Mantenuta per retrocompatibilita` di eventuali altre chiamate.
 
     Returns:
         BytesIO object con il contenuto del file, o None se errore
@@ -202,6 +249,96 @@ def download_file(username, subpath, filename):
     finally:
         sftp.close()
         ssh.close()
+
+
+def _resolve_remote_path(username, subpath, filename):
+    """Risolve in modo sicuro il path remoto sul NAS per (user/subpath/filename)."""
+    subpath = _safe_subpath(subpath)
+    safe_name = filename.replace('/', '_').replace('\\', '_')
+    base = _user_base_path(username)
+    target_dir = f"{base}/{subpath}" if subpath else base
+    return f"{target_dir}/{safe_name}"
+
+
+def remote_file_size(username, subpath, filename):
+    """Ritorna la dimensione in bytes di un file remoto, o None se non esiste."""
+    ssh, sftp = _get_sftp()
+    try:
+        remote_path = _resolve_remote_path(username, subpath, filename)
+        try:
+            attrs = sftp.stat(remote_path)
+            return attrs.st_size
+        except FileNotFoundError:
+            return None
+        except IOError:
+            return None
+    finally:
+        sftp.close()
+        ssh.close()
+
+
+def iter_remote_file(username, subpath, filename, chunk_size=4 * 1024 * 1024):
+    """Generator: legge un file dal NAS via SFTP e yielda chunk in streaming.
+
+    A differenza di download_file() (che bufferizza tutto in RAM), questo
+    streamma direttamente dal NAS al chiamante: RAM costante ~chunk_size,
+    indipendente dalla dimensione del file. Indispensabile per file >100 MB.
+
+    Default chunk_size = 4 MB: bilancia overhead Python (chunk piu` grandi
+    = meno cicli) e responsivita` del flush HTTP verso il browser (chunk
+    troppo grandi = la barra di progresso del browser scatta a salti).
+
+    La connessione SSH+SFTP viene aperta all'inizio e chiusa solo quando il
+    generator si esaurisce o viene garbage-collected. Se il client HTTP
+    chiude la connessione a meta` download, il generator si interrompe,
+    Python lo GC, e le risorse SFTP vengono rilasciate dal finally.
+
+    Usage in Flask:
+        return Response(iter_remote_file(user, sub, name), mimetype=...)
+    """
+    ssh, sftp = _get_sftp()
+    bytes_sent = 0
+    t_start = time.monotonic()
+    try:
+        remote_path = _resolve_remote_path(username, subpath, filename)
+        logger.info(f"Stream download START: {remote_path}")
+        remote_file = sftp.open(remote_path, 'rb')
+        # Suggerisce a paramiko di pipeline-are le richieste di read; con
+        # set_pipelined() le read vanno in volo in parallelo invece di
+        # serializzate, migliorando di parecchio la throughput.
+        try:
+            remote_file.set_pipelined(True)
+        except Exception:
+            pass
+        try:
+            while True:
+                chunk = remote_file.read(chunk_size)
+                if not chunk:
+                    break
+                bytes_sent += len(chunk)
+                yield chunk
+        finally:
+            try:
+                remote_file.close()
+            except Exception:
+                pass
+    finally:
+        elapsed = time.monotonic() - t_start
+        if elapsed > 0 and bytes_sent > 0:
+            mb = bytes_sent / 1024 / 1024
+            mbps = mb / elapsed
+            logger.info(
+                f"Stream download END: {mb:.1f} MB in {elapsed:.1f}s "
+                f"= {mbps:.2f} MB/s ({mbps*8:.1f} Mbit/s)"
+            )
+        try:
+            sftp.close()
+        except Exception:
+            pass
+        try:
+            ssh.close()
+        except Exception:
+            pass
 
 
 def delete_file(username, subpath, filename):

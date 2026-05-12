@@ -2,6 +2,7 @@ from flask import Flask, render_template, redirect, url_for, flash, request, sen
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from werkzeug.utils import secure_filename
 import nas_storage
+import upload_queue
 from config import Config
 from database import init_database, get_db_connection
 from models import Utente, Menu, Permesso, CategoriaServizio, Servizio, News, Artista, MembroBand, Disco, Brano, Evento
@@ -12,6 +13,7 @@ from functools import wraps
 import os
 import uuid
 import logging
+import tempfile
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(name)s %(levelname)s: %(message)s')
 
@@ -24,6 +26,62 @@ app.config['MAX_CONTENT_LENGTH'] = None
 
 # Assicura che la cartella uploads esista
 os.makedirs(Config.UPLOAD_FOLDER, exist_ok=True)
+# Cartella di staging per gli upload differiti verso il NAS
+os.makedirs(Config.STAGING_FOLDER, exist_ok=True)
+
+# Werkzeug, durante il parsing del multipart, butta i file >500KB in un
+# tempfile creato in tempfile.gettempdir() (di default /tmp). Per upload
+# molto grandi (GB) e` meglio metterli nella stessa partizione di staging
+# cosi` non saturano /tmp e il successivo file.save() su staging diventa
+# una copia tra path della stessa partizione (veloce).
+_werkzeug_tmp = os.path.join(Config.STAGING_FOLDER, '_werkzeug_tmp')
+os.makedirs(_werkzeug_tmp, exist_ok=True)
+tempfile.tempdir = _werkzeug_tmp
+os.environ['TMPDIR'] = _werkzeug_tmp
+
+# Inizializza lo schema del DB PRIMA di avviare qualunque cosa che ci
+# legga sopra (in particolare il worker della coda upload, che fa subito
+# recovery e cleanup sulla tabella pending_uploads).
+# Eseguito a livello modulo cosi` funziona sia con `python app.py` che
+# con un WSGI server (gunicorn ecc) dove il blocco __main__ non viene
+# eseguito. Se il DB e` gia` inizializzato, le CREATE TABLE IF NOT EXISTS
+# sono no-op.
+try:
+    init_database()
+except Exception as e:
+    logging.error(f"Errore init_database al boot: {e}", exc_info=True)
+
+# Avvia il worker che trasferisce in background i file di staging sul NAS.
+# Se la coda e` vuota il worker dorme; se Flask viene riavviato gli upload
+# pending vengono ripresi automaticamente.
+#
+# Avviamo il worker SOLO nel processo che servira` davvero le richieste:
+#  - In produzione (gunicorn/uwsgi): __name__ != '__main__' -> start.
+#  - In dev (python app.py) con reloader: il parent ha __name__='__main__'
+#    senza WERKZEUG_RUN_MAIN, il child ha __name__='__main__' con
+#    WERKZEUG_RUN_MAIN='true'. Avviamo solo nel child.
+_is_parent_reloader = (
+    __name__ == '__main__'
+    and os.environ.get('WERKZEUG_RUN_MAIN') != 'true'
+)
+if not _is_parent_reloader:
+    upload_queue.start_worker()
+
+
+# Handler globale che logga il traceback completo di OGNI eccezione non gestita.
+# Senza questo, Werkzeug a volte tronca il traceback nello stdout/log di Flask
+# quando l'errore avviene durante il parsing del body (es. multipart corrotto),
+# rendendo impossibile diagnosticare i 500.
+@app.errorhandler(Exception)
+def _log_all_exceptions(e):
+    import traceback as _tb
+    from werkzeug.exceptions import HTTPException
+    logging.error(
+        f"[error-handler] {type(e).__name__}: {e}\n{_tb.format_exc()}"
+    )
+    if isinstance(e, HTTPException):
+        return e
+    return ("Errore interno del server. Dettagli nel log.", 500)
 
 
 def allowed_file(filename):
@@ -403,6 +461,16 @@ def file_manager():
         flash(f'Errore di connessione al NAS: {str(e)}', 'danger')
         files = []
 
+    # Aggiungi i file ancora in coda (caricati dall'utente ma non ancora
+    # trasferiti sul NAS). Vengono mostrati con un badge "in caricamento".
+    # Evita di duplicare un file gia` presente sul NAS con stesso nome.
+    try:
+        existing_names = {f['name'] for f in files}
+        pending = upload_queue.list_pending(target_username, subpath)
+        files = files + [p for p in pending if p['name'] not in existing_names]
+    except Exception as e:
+        logging.warning(f"Impossibile leggere coda pending: {e}")
+
     # Purge file scaduti dal cestino (oltre 30 giorni)
     try:
         _purge_expired_files()
@@ -458,36 +526,68 @@ def _file_manager_redirect(subpath, user_id=None, shared=False):
 @app.route('/file-manager/upload', methods=['POST'])
 @login_required
 def file_manager_upload():
+    # Logging diagnostico molto verboso: utile per upload grossi che possono
+    # fallire in vari modi (timeout, multipart corrotto, disco pieno, ecc.).
+    content_length = request.content_length
+    content_length_human = (
+        f"{content_length/1024/1024:.1f} MB" if content_length else "sconosciuta"
+    )
+    logging.info(
+        f"[upload] BEGIN remote={request.remote_addr} user={current_user.username} "
+        f"content_length={content_length_human}"
+    )
+
     subpath = request.form.get('subpath', '')
     target_username = _get_file_manager_username()
     user_id = request.form.get('target_user_id', '')
     shared = request.form.get('shared') == '1'
 
     if 'files' not in request.files:
+        logging.warning("[upload] nessun campo 'files' nella request")
         flash('Nessun file selezionato.', 'warning')
         return _file_manager_redirect(subpath, user_id, shared)
 
     files = request.files.getlist('files')
-    uploaded = 0
+    logging.info(f"[upload] ricevuti {len(files)} file da accodare")
+    enqueued = 0
     errors = 0
 
+    # I file vengono salvati subito su disco locale (staging) e accodati.
+    # Il worker in background li trasferira` sul NAS senza tenere appeso
+    # l'utente, che vede il file in lista con un badge "in caricamento".
     for file in files:
         if file and file.filename:
             try:
-                success = nas_storage.upload_file(
-                    target_username, subpath, file.stream, file.filename
+                logging.info(
+                    f"[upload] enqueue start: {file.filename!r} "
+                    f"(content-type={file.content_type!r})"
                 )
-                if success:
-                    uploaded += 1
+                job_id = upload_queue.enqueue_upload(
+                    target_username, subpath, file, file.filename
+                )
+                if job_id:
+                    enqueued += 1
+                    logging.info(f"[upload] enqueue OK: {file.filename!r} -> job #{job_id}")
                 else:
                     errors += 1
-            except Exception:
+                    logging.error(f"[upload] enqueue ritornato None per {file.filename!r}")
+            except Exception as e:
                 errors += 1
+                logging.error(
+                    f"[upload] exception su {file.filename!r}: {type(e).__name__}: {e}",
+                    exc_info=True,
+                )
 
-    if uploaded > 0:
-        flash(f'{uploaded} file caricato/i con successo.', 'success')
+    logging.info(f"[upload] END enqueued={enqueued} errors={errors}")
+
+    if enqueued > 0:
+        flash(
+            f'{enqueued} file in caricamento sul server. '
+            f'Puoi continuare a lavorare, il trasferimento avviene in background.',
+            'success',
+        )
     if errors > 0:
-        flash(f'{errors} file non caricato/i per errori.', 'danger')
+        flash(f'{errors} file non accettato/i per errori di scrittura.', 'danger')
 
     return _file_manager_redirect(subpath, user_id, shared)
 
@@ -512,11 +612,41 @@ def file_manager_download():
     if not filename:
         return 'File non specificato.', 400
 
-    buffer = nas_storage.download_file(target_username, subpath, filename)
-    if buffer is None:
-        return 'Errore durante il download del file.', 500
+    # Download in STREAMING dal NAS direttamente al browser.
+    # Niente buffer in RAM: paramiko legge a chunk dal NAS, Flask li
+    # passa subito al client. Per file da GB la RAM resta ~1MB costante.
+    try:
+        size = nas_storage.remote_file_size(target_username, subpath, filename)
+    except Exception as e:
+        logging.error(f"[download] stat fallita per {filename!r}: {e}", exc_info=True)
+        return 'Errore di accesso al NAS.', 500
+    if size is None:
+        return 'File non trovato sul NAS.', 404
 
-    return send_file(buffer, download_name=filename, as_attachment=True, mimetype='application/octet-stream')
+    logging.info(
+        f"[download] {target_username}/{subpath}/{filename} size={size/1024/1024:.1f} MB"
+    )
+
+    from flask import Response
+    from urllib.parse import quote as _urlquote
+
+    # Header Content-Disposition con codifica UTF-8 (RFC 5987) per
+    # supportare nomi file con caratteri non ASCII.
+    quoted = _urlquote(filename, safe='')
+    response = Response(
+        nas_storage.iter_remote_file(target_username, subpath, filename),
+        mimetype='application/octet-stream',
+    )
+    response.headers['Content-Length'] = str(size)
+    response.headers['Content-Disposition'] = (
+        f'attachment; filename="{filename}"; filename*=UTF-8\'\'{quoted}'
+    )
+    # Disabilita la compressione automatica (utile su file gia` compressi)
+    # e dichiara che il body non e` modificabile, cosi` proxy intermedi
+    # non interferiscono col Content-Length.
+    response.headers['Content-Encoding'] = 'identity'
+    response.headers['X-Accel-Buffering'] = 'no'
+    return response
 
 
 @app.route('/file-manager/delete', methods=['POST'])

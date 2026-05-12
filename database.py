@@ -305,6 +305,27 @@ def init_database():
         )
     ''')
 
+    # Tabella coda upload differiti verso il NAS
+    # I file vengono salvati in staging locale e questa riga viene creata
+    # con status='pending'. Un worker background li trasferisce via SFTP.
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS pending_uploads (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            username VARCHAR(100) NOT NULL,
+            subpath VARCHAR(500) NOT NULL DEFAULT '',
+            filename VARCHAR(500) NOT NULL,
+            local_path VARCHAR(1000) NOT NULL,
+            size_bytes BIGINT NOT NULL DEFAULT 0,
+            status ENUM('pending', 'uploading', 'uploaded', 'failed') NOT NULL DEFAULT 'pending',
+            attempts INT NOT NULL DEFAULT 0,
+            error_message TEXT NULL,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            INDEX idx_pending_status (status),
+            INDEX idx_pending_user_path (username, subpath)
+        )
+    ''')
+
     # Migrazioni per database esistenti
     migrations = [
         "ALTER TABLE utenti ADD COLUMN artista_id INT NULL",

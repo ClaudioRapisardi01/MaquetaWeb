@@ -120,7 +120,7 @@
                     {% endif %}
 
                     {% for file in files %}
-                    <tr class="file-row{% if file.nascosto %} table-secondary{% endif %}" {% if file.nascosto %}style="opacity: 0.6;"{% endif %}>
+                    <tr class="file-row{% if file.nascosto %} table-secondary{% endif %}{% if file.pending %} table-warning{% endif %}" {% if file.nascosto %}style="opacity: 0.6;"{% elif file.pending %}style="opacity: 0.85;"{% endif %}>
                         <td>
                             {% if file.is_dir %}
                             <a href="{{ url_for('file_manager', path=(subpath + '/' + file.name if subpath else file.name), user_id=selected_user_id, shared='1' if shared else None) }}"
@@ -134,10 +134,30 @@
                             </a>
                             {% else %}
                             <div class="d-flex align-items-center">
+                                {% if file.pending %}
+                                <i class="bi bi-cloud-arrow-up-fill text-warning me-3" style="font-size: 1.5rem;"></i>
+                                {% else %}
                                 <i class="{{ get_file_icon(file.extension) }} text-primary me-3" style="font-size: 1.5rem;"></i>
+                                {% endif %}
                                 <div>
                                     <span class="fw-semibold">{{ file.name }}</span>
                                     {% if file.nascosto %}<span class="badge bg-secondary ms-1">Nascosto</span>{% endif %}
+                                    {% if file.pending %}
+                                        {% if file.pending_status == 'failed' %}
+                                        <span class="badge bg-danger ms-1" title="{{ file.pending_error or '' }}">
+                                            <i class="bi bi-exclamation-triangle"></i> Errore upload
+                                        </span>
+                                        {% elif file.pending_status == 'uploading' %}
+                                        <span class="badge bg-info ms-1">
+                                            <span class="spinner-border spinner-border-sm" role="status" style="width: 0.7em; height: 0.7em;"></span>
+                                            Caricamento sul server...
+                                        </span>
+                                        {% else %}
+                                        <span class="badge bg-warning text-dark ms-1">
+                                            <i class="bi bi-hourglass-split"></i> In coda
+                                        </span>
+                                        {% endif %}
+                                    {% endif %}
                                     <div class="d-md-none small text-muted">{{ file.size_human }}</div>
                                 </div>
                             </div>
@@ -151,7 +171,7 @@
                         </td>
                         <td>
                             <div class="btn-group-actions justify-content-end">
-                                {% if current_user.is_admin and selected_user_id and not shared %}
+                                {% if current_user.is_admin and selected_user_id and not shared and not file.pending %}
                                 <!-- Pulsante nascondi/mostra per admin sui file dell'artista -->
                                 {% if file.nascosto %}
                                 <form method="POST" action="{{ url_for('file_manager_mostra') }}" class="d-inline">
@@ -174,7 +194,19 @@
                                 {% endif %}
                                 {% endif %}
 
-                                {% if file.is_dir %}
+                                {% if file.pending %}
+                                <!-- File ancora in coda verso il NAS: nessuna azione possibile.
+                                     Mostriamo solo lo stato; quando il worker finira` la riga
+                                     scomparira` dalla coda e ricomparira` come file normale. -->
+                                <span class="small text-muted px-2">
+                                    <i class="bi bi-clock-history"></i>
+                                    {% if file.pending_attempts and file.pending_attempts > 0 %}
+                                        tentativo {{ file.pending_attempts + 1 }}
+                                    {% else %}
+                                        in attesa
+                                    {% endif %}
+                                </span>
+                                {% elif file.is_dir %}
                                 <a href="{{ url_for('file_manager', path=(subpath + '/' + file.name if subpath else file.name), user_id=selected_user_id, shared='1' if shared else None) }}"
                                    class="btn btn-sm btn-outline-primary btn-icon"
                                    data-bs-toggle="tooltip" title="Apri">
@@ -706,5 +738,27 @@
     var tooltipList = tooltipTriggerList.map(function(tooltipTriggerEl) {
         return new bootstrap.Tooltip(tooltipTriggerEl);
     });
+
+    // Auto-refresh: se ci sono file in coda di upload verso il NAS,
+    // ricarica la pagina ogni 5 secondi cosi` l'utente vede sparire
+    // il badge "in caricamento" quando il worker ha finito.
+    // Lo script viene emesso solo se ci sono pending nella lista.
+    {% set has_pending = files | selectattr('pending') | list | length > 0 %}
+    {% if has_pending %}
+    (function() {
+        // Non auto-refreshare se l'utente sta interagendo con un modal
+        // (es. sta scrivendo nel form di rename o upload).
+        const REFRESH_MS = 5000;
+        setTimeout(function() {
+            const openModal = document.querySelector('.modal.show');
+            if (!openModal) {
+                window.location.reload();
+            } else {
+                // Riprova tra poco
+                setTimeout(() => window.location.reload(), 3000);
+            }
+        }, REFRESH_MS);
+    })();
+    {% endif %}
 </script>
 {% endblock %}
