@@ -28,6 +28,7 @@
 <div class="row">
     <div class="col-lg-8">
         <form method="POST" id="membroForm" enctype="multipart/form-data">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <!-- Informazioni Base -->
             <div class="card mb-4 slide-up">
                 <div class="card-header">
@@ -233,6 +234,7 @@
             <div class="card-body">
                 <form action="{{ url_for('elimina_membro', id=membro.id) }}" method="POST"
                       onsubmit="return confirm('Sei sicuro di voler eliminare questo membro?');">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <button type="submit" class="btn btn-outline-danger w-100">
                         <i class="bi bi-trash me-2"></i>Elimina Membro
                     </button>

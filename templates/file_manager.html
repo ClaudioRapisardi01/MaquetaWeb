@@ -175,6 +175,7 @@
                                 <!-- Pulsante nascondi/mostra per admin sui file dell'artista -->
                                 {% if file.nascosto %}
                                 <form method="POST" action="{{ url_for('file_manager_mostra') }}" class="d-inline">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                     <input type="hidden" name="subpath" value="{{ subpath }}">
                                     <input type="hidden" name="filename" value="{{ file.name }}">
                                     <input type="hidden" name="target_user_id" value="{{ selected_user_id }}">
@@ -184,6 +185,7 @@
                                 </form>
                                 {% else %}
                                 <form method="POST" action="{{ url_for('file_manager_nascondi') }}" class="d-inline">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                     <input type="hidden" name="subpath" value="{{ subpath }}">
                                     <input type="hidden" name="filename" value="{{ file.name }}">
                                     <input type="hidden" name="target_user_id" value="{{ selected_user_id }}">
@@ -293,6 +295,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <form method="POST" action="{{ url_for('file_manager_upload') }}" enctype="multipart/form-data" id="uploadForm">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <div class="modal-body">
                     <input type="hidden" name="subpath" value="{{ subpath }}">
                     <input type="hidden" name="target_user_id" value="{{ selected_user_id or '' }}">
@@ -357,6 +360,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <form method="POST" action="{{ url_for('file_manager_nuova_cartella') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <div class="modal-body">
                     <input type="hidden" name="subpath" value="{{ subpath }}">
                     <input type="hidden" name="target_user_id" value="{{ selected_user_id or '' }}">
@@ -396,6 +400,7 @@
             <div class="modal-footer border-0">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
                 <form method="POST" action="{{ url_for('file_manager_delete') }}" id="deleteFileForm">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <input type="hidden" name="subpath" value="{{ subpath }}">
                     <input type="hidden" name="target_user_id" value="{{ selected_user_id or '' }}">
                     {% if shared %}<input type="hidden" name="shared" value="1">{% endif %}
@@ -428,6 +433,7 @@
             <div class="modal-footer border-0">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
                 <form method="POST" action="{{ url_for('file_manager_elimina_cartella') }}" id="deleteFolderForm">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <input type="hidden" name="subpath" value="{{ subpath }}">
                     <input type="hidden" name="target_user_id" value="{{ selected_user_id or '' }}">
                     {% if shared %}<input type="hidden" name="shared" value="1">{% endif %}
@@ -452,6 +458,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <form method="POST" action="{{ url_for('file_manager_rinomina') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <div class="modal-body">
                     <input type="hidden" name="subpath" value="{{ subpath }}">
                     <input type="hidden" name="target_user_id" value="{{ selected_user_id or '' }}">

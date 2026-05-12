@@ -1130,6 +1130,31 @@ body {
     #dropZone p.fw-semibold {
         font-size: 0.875rem;
     }
+
+    /* Modal fullscreen su mobile (M2).
+       Bootstrap ha .modal-fullscreen-md-down ma andrebbe aggiunto a
+       ogni .modal-dialog manualmente nei 25+ template. Lo facciamo
+       globalmente via CSS: tutti i modal-dialog occupano tutto lo
+       schermo sotto i 768px. Cosi` i form admin (anche modal-lg)
+       diventano leggibili invece di strabordare. */
+    .modal-dialog {
+        margin: 0 !important;
+        max-width: 100% !important;
+        width: 100% !important;
+        height: 100% !important;
+    }
+    .modal-dialog .modal-content {
+        height: 100%;
+        border-radius: 0;
+        border: none;
+    }
+    .modal-dialog .modal-body {
+        overflow-y: auto;
+    }
+    /* Il body con un modal aperto su mobile non deve scrollare in sotto */
+    body.modal-open {
+        overflow: hidden;
+    }
 }
 
 @media (max-width: 576px) {

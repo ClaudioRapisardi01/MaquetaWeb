@@ -2,6 +2,14 @@
 .env
 .env.local
 
+# Certificati TLS (chiave privata!)
+certs/*.pem
+certs/*.key
+certs/*.crt
+
+# Password admin generata al primo avvio
+admin_password.txt
+
 # Cartella di staging upload (file in transito verso il NAS)
 staging/
 

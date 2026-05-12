@@ -1,5 +1,8 @@
 from flask import Flask, render_template, redirect, url_for, flash, request, send_file, jsonify, session
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
+from flask_wtf.csrf import CSRFProtect, generate_csrf
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 from werkzeug.utils import secure_filename
 import nas_storage
 import upload_queue
@@ -8,6 +11,7 @@ from database import init_database, get_db_connection
 from models import Utente, Menu, Permesso, CategoriaServizio, Servizio, News, Artista, MembroBand, Disco, Brano, Evento
 import re
 import unicodedata
+import secrets
 from datetime import datetime
 from functools import wraps
 import os
@@ -23,6 +27,31 @@ app.config.from_object(Config)
 # Rimuove il limite globale di upload (necessario per il file manager NAS senza limiti).
 # La validazione delle dimensioni per gli upload normali (immagini) avviene a livello applicativo.
 app.config['MAX_CONTENT_LENGTH'] = None
+
+# --- CSRF protection (Flask-WTF) ---
+# Protegge tutti i POST/PUT/DELETE/PATCH richiedendo un token nel form
+# (o nell'header X-CSRFToken per AJAX). I template includono il token via
+# `{{ csrf_token() }}` in un hidden input. Senza token la request torna 400.
+# WTF_CSRF_TIME_LIMIT=None: il token vive per tutta la sessione (utile per
+# upload lunghi: con un timeout di 1h, un upload da 12 min va bene, ma uno
+# da 90 min no).
+app.config.setdefault('WTF_CSRF_TIME_LIMIT', None)
+csrf = CSRFProtect(app)
+
+# Espone csrf_token() come funzione globale Jinja (lo e` gia` per default,
+# ma esplicitamente per chiarezza).
+app.jinja_env.globals['csrf_token'] = generate_csrf
+
+# --- Rate limiting (Flask-Limiter) ---
+# Default storage: memory:// (process-local). Sufficiente per dev/LAN; in
+# multi-worker (gunicorn -w >1) si dovrebbe puntare a Redis condiviso.
+# Usato selettivamente sull'endpoint /login per fermare brute force.
+limiter = Limiter(
+    get_remote_address,
+    app=app,
+    default_limits=[],  # niente limite di default, applichiamo solo dove serve
+    storage_uri='memory://',
+)
 
 # Assicura che la cartella uploads esista
 os.makedirs(Config.UPLOAD_FOLDER, exist_ok=True)
@@ -341,7 +370,11 @@ def landing_magazine():
 
 
 @app.route('/login', methods=['GET', 'POST'])
+@limiter.limit("10 per minute; 60 per hour", methods=['POST'])
 def login():
+    """Login con rate limiting (S2): max 10 tentativi al minuto e 60 all'ora
+    per indirizzo IP. Limite applicato solo al POST: il GET (visualizzazione
+    della pagina) resta libero. Quando l'IP eccede, torna 429."""
     if current_user.is_authenticated:
         return redirect(url_for('dashboard'))
 
@@ -2436,8 +2469,15 @@ def init_db():
     """Inizializza il database con tabelle e dati di default."""
     init_database()
 
-    # Crea admin se non esiste
+    # Crea admin se non esiste, con password CASUALE forte (S5).
+    # La vecchia password hardcoded 'admin123' era pubblica nel codice
+    # e veniva creata su ogni nuovo deploy: chiunque clonasse il repo
+    # sapeva come entrare. Ora generiamo 24 caratteri url-safe (~144 bit)
+    # e li stampiamo in console + salviamo su un file con chmod 600
+    # leggibile solo dall'utente locale. L'amministratore DEVE cambiare
+    # la password al primo login.
     if not Utente.get_by_username('admin'):
+        admin_password = secrets.token_urlsafe(18)  # ~24 char base64
         admin = Utente(
             username='admin',
             nome='Amministratore',
@@ -2445,9 +2485,30 @@ def init_db():
             email='admin@gestionale.local',
             is_admin=True
         )
-        admin.set_password('admin123')
+        admin.set_password(admin_password)
         admin.save()
-        print('Utente admin creato (password: admin123)')
+        # Banner ben visibile nei log
+        banner = (
+            '\n' + '=' * 70 +
+            '\n  UTENTE ADMIN CREATO - prima inizializzazione' +
+            '\n  username: admin' +
+            f'\n  password: {admin_password}' +
+            '\n  CAMBIA QUESTA PASSWORD AL PRIMO LOGIN!' +
+            '\n' + '=' * 70 + '\n'
+        )
+        print(banner)
+        logging.warning(banner)
+        # Salva anche su file per recupero (chmod 600, solo il proprietario legge)
+        try:
+            pwd_file = os.path.join(
+                os.path.dirname(os.path.abspath(__file__)), 'admin_password.txt'
+            )
+            with open(pwd_file, 'w') as f:
+                f.write(f'admin\t{admin_password}\n')
+            os.chmod(pwd_file, 0o600)
+            print(f'(credenziali salvate anche in {pwd_file}, chmod 600)')
+        except Exception as e:
+            logging.warning(f'Impossibile scrivere admin_password.txt: {e}')
 
     # Crea voci menu mancanti (aggiunge solo quelle che non esistono gia)
     menu_default = [

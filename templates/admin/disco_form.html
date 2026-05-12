@@ -27,6 +27,7 @@
 <div class="row">
     <div class="col-lg-8">
         <form method="POST" id="discoForm" enctype="multipart/form-data">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <!-- Informazioni Base -->
             <div class="card mb-4 slide-up">
                 <div class="card-header">
@@ -412,6 +413,7 @@
             <div class="modal-footer border-0">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
                 <form action="{{ url_for('elimina_disco', id=disco.id) }}" method="POST" class="d-inline">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <button type="submit" class="btn btn-danger">
                         <i class="bi bi-trash me-1"></i>Elimina
                     </button>
