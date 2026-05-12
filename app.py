@@ -160,15 +160,30 @@ def artista_required(f):
 
 def _get_file_manager_username():
     """Restituisce lo username da usare per le operazioni file manager.
-    Gli admin possono selezionare un altro utente o lo spazio condiviso."""
+
+    Gli admin possono operare:
+      - sulla propria cartella (default)
+      - sulla cartella condivisa __condivisi__
+      - sulla cartella di un ARTISTA (utente con artista_id valorizzato)
+
+    Validazione artista_id: senza questo, un admin che modificasse il
+    target_user_id nell'URL potrebbe operare sulla cartella di un altro
+    admin o di un utente normale. Restringiamo a soli artisti.
+    """
     if current_user.is_admin:
         shared = request.form.get('shared') or request.args.get('shared')
         if shared == '1':
             return '__condivisi__'
         user_id = request.form.get('target_user_id') or request.args.get('user_id')
         if user_id:
-            target_user = Utente.get_by_id(int(user_id))
-            if target_user:
+            try:
+                target_user = Utente.get_by_id(int(user_id))
+            except (TypeError, ValueError):
+                target_user = None
+            # Accettiamo solo utenti collegati a un artista. Per ogni altro
+            # caso (admin, utente senza artista) cadiamo sulla cartella
+            # dell'utente loggato.
+            if target_user and target_user.artista_id:
                 return target_user.username
     return current_user.username
 
@@ -424,6 +439,7 @@ def profilo():
 
 @app.route('/file-manager')
 @login_required
+@artista_required
 def file_manager():
     subpath = request.args.get('path', '')
     shared = request.args.get('shared') == '1'
@@ -525,6 +541,7 @@ def _file_manager_redirect(subpath, user_id=None, shared=False):
 
 @app.route('/file-manager/upload', methods=['POST'])
 @login_required
+@artista_required
 def file_manager_upload():
     # Logging diagnostico molto verboso: utile per upload grossi che possono
     # fallire in vari modi (timeout, multipart corrotto, disco pieno, ecc.).
@@ -594,6 +611,7 @@ def file_manager_upload():
 
 @app.route('/file-manager/download')
 @login_required
+@artista_required
 def file_manager_download():
     subpath = request.args.get('path', '')
     filename = request.args.get('file', '')
@@ -605,12 +623,48 @@ def file_manager_download():
         else:
             user_id = request.args.get('user_id')
             if user_id:
-                target_user = Utente.get_by_id(int(user_id))
-                if target_user:
+                try:
+                    target_user = Utente.get_by_id(int(user_id))
+                except (TypeError, ValueError):
+                    target_user = None
+                # Admin pu_ scaricare solo da cartelle di artisti (non di
+                # altri admin o utenti senza artista). Coerente con
+                # _get_file_manager_username().
+                if target_user and target_user.artista_id:
                     target_username = target_user.username
+                else:
+                    logging.warning(
+                        f"[download] admin {current_user.username} ha tentato "
+                        f"download per user_id={user_id} che non e` un artista"
+                    )
+                    return 'Accesso negato.', 403
 
     if not filename:
         return 'File non specificato.', 400
+
+    # Controllo file nascosti: un admin nasconde un file all'artista marcandolo
+    # in file_nascosti. Prima la lista UI lo filtrava, ma il download
+    # diretto via URL era un bypass. Ora rifiutiamo per i non-admin.
+    file_full_path = _build_file_path(subpath, filename)
+    if not current_user.is_admin:
+        hidden = _get_hidden_files(target_username)
+        if file_full_path in hidden:
+            logging.warning(
+                f"[download] {current_user.username} ha tentato download di "
+                f"file nascosto: {target_username}/{file_full_path}"
+            )
+            return 'File non trovato.', 404
+
+    # Controllo cestino: file logicamente eliminati non vanno serviti.
+    # Per ora vale anche per admin (se vuole recuperarli, deve passare da
+    # un endpoint dedicato "ripristina dal cestino", non da download).
+    deleted = _get_deleted_files(target_username)
+    if file_full_path in deleted:
+        logging.info(
+            f"[download] richiesta download di file in cestino: "
+            f"{target_username}/{file_full_path}"
+        )
+        return 'File eliminato (nel cestino).', 410
 
     # Download in STREAMING dal NAS direttamente al browser.
     # Niente buffer in RAM: paramiko legge a chunk dal NAS, Flask li
@@ -651,6 +705,7 @@ def file_manager_download():
 
 @app.route('/file-manager/delete', methods=['POST'])
 @login_required
+@artista_required
 def file_manager_delete():
     subpath = request.form.get('subpath', '')
     filename = request.form.get('filename', '')
@@ -684,6 +739,7 @@ def file_manager_delete():
 
 @app.route('/file-manager/rinomina', methods=['POST'])
 @login_required
+@artista_required
 def file_manager_rinomina():
     subpath = request.form.get('subpath', '')
     old_name = request.form.get('old_name', '')
@@ -707,6 +763,7 @@ def file_manager_rinomina():
 
 @app.route('/file-manager/nuova-cartella', methods=['POST'])
 @login_required
+@artista_required
 def file_manager_nuova_cartella():
     subpath = request.form.get('subpath', '')
     folder_name = request.form.get('folder_name', '').strip()
@@ -729,6 +786,7 @@ def file_manager_nuova_cartella():
 
 @app.route('/file-manager/elimina-cartella', methods=['POST'])
 @login_required
+@artista_required
 def file_manager_elimina_cartella():
     subpath = request.form.get('subpath', '')
     folder_name = request.form.get('folder_name', '')
